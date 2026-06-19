@@ -1,0 +1,196 @@
+.admin-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+  color: #ffffff;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.admin-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(90deg, #ffffff, #8ab4f8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.admin-subtitle {
+  font-size: 1rem;
+  color: #b0bec5;
+  margin: 0;
+}
+
+/* Botones institucionales */
+.btn-primary {
+  background: #0288d1;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(2, 136, 209, 0.4);
+}
+
+.btn-primary:hover {
+  background: #039be5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.6);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  background: rgba(211, 47, 47, 0.2);
+  color: #ff8a80;
+  border: 1px solid rgba(211, 47, 47, 0.4);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: rgba(211, 47, 47, 0.4);
+}
+
+/* Estructura Glassmorphism del Formulario */
+.glass-form-panel {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  margin-top: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8ab4f8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input, .form-select, .form-textarea {
+  background: rgba(1, 20, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.85rem;
+  color: #ffffff;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  appearance: none;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #0288d1;
+  box-shadow: 0 0 0 3px rgba(2, 136, 209, 0.25);
+  background: rgba(1, 20, 59, 0.8);
+}
+
+.form-select option {
+  background: #01143b;
+  color: #ffffff;
+}
+
+/* Sección de imágenes dinámicas */
+.dynamic-images-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.image-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.image-input-row .form-input {
+  flex: 1;
+}
+
+.btn-add-image {
+  background: rgba(138, 180, 248, 0.15);
+  color: #8ab4f8;
+  border: 1px dashed rgba(138, 180, 248, 0.4);
+  padding: 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-add-image:hover {
+  background: rgba(138, 180, 248, 0.25);
+}
+
+/* Alertas de Error Backend */
+.error-glass-alert {
+  background: rgba(211, 47, 47, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  color: #ff8a80;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.form-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1.5rem;
+}

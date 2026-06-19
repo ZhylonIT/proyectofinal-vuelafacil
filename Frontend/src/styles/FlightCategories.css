@@ -1,0 +1,122 @@
+.categories-section {
+  width: 100%;
+  padding: 1rem 0;
+  box-sizing: border-box;
+}
+
+.categories-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  margin-left: 2rem;
+  text-align: left;
+  position: relative;
+  display: inline-block;
+}
+
+.categories-title::after {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 4px;
+  background-color: #5B88A5;
+  margin-top: 8px;
+  border-radius: 2px;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+
+.category-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 0;
+  background-color: #e2e8f0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  outline: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.category-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition: transform 0.4s ease;
+}
+
+.category-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+.category-card:hover .category-image {
+  transform: scale(1.1);
+}
+
+.category-card:hover .category-overlay {
+  background-color: rgba(2, 136, 209, 0.5);
+}
+
+.category-card--active {
+  border: 2px solid #0288d1; /* Borde azul institucional */
+  box-shadow: 0 8px 20px rgba(2, 136, 209, 0.4);
+}
+
+.category-card--active .category-overlay {
+  background-color: rgba(2, 136, 209, 0.7);
+}
+
+.category-name {
+  position: relative;
+  z-index: 3;
+  font-family: 'Josefin Sans', 'Poppins', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.5px;
+}
+
+@media (min-width: 768px) {
+  .categories-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+    
+  .category-card {
+    min-height: 140px;
+  }
+  
+  .category-name {
+    font-size: 1.25rem;
+  }
+}
