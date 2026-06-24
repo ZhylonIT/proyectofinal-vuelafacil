@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import '../../../styles/FlightSearch.css';
-// Importamos la imagen para que Vite la procese en el build
 import bannerImage from '../../../assets/images/banner.png';
 
 const passengerOptions = [1, 2, 3, 4, 5, 6, 7, 8];

@@ -21,7 +21,7 @@ const INITIAL_MOCK_FLIGHTS = [
   { id: 'mock-10', destination: 'Cataratas del Iguazú', description: 'Siente la fuerza indomable de una de las maravillas naturales del mundo.', category: 'naturaleza', price: 110000, currency: 'ARS', images: [IguazuImage] }
 ];
 
-function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch }) {
+function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, activeCharacteristics }) {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,8 +32,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch }
     setPrevCategory(activeCategory);
     setPrevSearchCriteria(searchCriteria);
     setCurrentPage(1);
-  }
-  // ----------------------------------------------
+  }  
 
   const navigate = useNavigate();
 
@@ -45,7 +44,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch }
         let combinedData = [];
 
         if (response.ok) {
-          const data = await response.json();          
+          const data = await response.json();           
           combinedData = [...data, ...INITIAL_MOCK_FLIGHTS];
         } else {
           combinedData = INITIAL_MOCK_FLIGHTS;
@@ -134,13 +133,20 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch }
   }, [searchCriteria, targetDestinationProfile]);
 
   const processedFlights = useMemo(() => {
-    if (searchCriteria) {
-      return generatedSearchResults;
+    const details = JSON.parse(localStorage.getItem('vuelafacil_destination_details') || '{}');
+    
+    let filtered = searchCriteria 
+      ? generatedSearchResults 
+      : (activeCategory === 'todos' ? recommendations : recommendations.filter(flight => flight.category?.toLowerCase() === activeCategory.toLowerCase()));
+    if (activeCharacteristics && activeCharacteristics.length > 0) {
+      filtered = filtered.filter(flight => {
+        const destData = details[flight.destination];
+        return destData && activeCharacteristics.every(charId => destData.characteristics?.includes(charId));
+      });
     }
-    return activeCategory === 'todos' 
-      ? recommendations 
-      : recommendations.filter(flight => flight.category?.toLowerCase() === activeCategory.toLowerCase());
-  }, [recommendations, activeCategory, searchCriteria, generatedSearchResults]);
+
+    return filtered;
+  }, [recommendations, activeCategory, searchCriteria, generatedSearchResults, activeCharacteristics]);
 
   const totalItems = processedFlights.length;
   const totalPages = Math.ceil(totalItems / 10);

@@ -87,7 +87,7 @@
 }
 
 .category-card--active {
-  border: 2px solid #0288d1; /* Borde azul institucional */
+  border: 2px solid #0288d1;
   box-shadow: 0 8px 20px rgba(2, 136, 209, 0.4);
 }
 

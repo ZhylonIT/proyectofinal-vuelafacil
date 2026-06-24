@@ -22,7 +22,7 @@
   display: block;
   width: 50px;
   height: 4px;
-  background-color: #5B88A5; /* Azul medio de tu paleta */
+  background-color: #5B88A5;
   margin-top: 8px;
   border-radius: 2px;
 }
@@ -37,7 +37,7 @@
 
 .recommendations-grid {
   display: grid;
-  grid-template-columns: 1fr; /* Resguardo de UX para pantallas móviles verticales */
+  grid-template-columns: 1fr;
   gap: 1.5rem;
 }
 

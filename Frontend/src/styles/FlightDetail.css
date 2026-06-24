@@ -1,4 +1,3 @@
-/* Contenedor Base de la Página de Detalle */
 .detail-container {
   width: 100%;
   max-width: 1200px;
@@ -7,7 +6,6 @@
   box-sizing: border-box;
 }
 
-/* Alineaciones de Header */
 .detail-header {
   display: flex;
   justify-content: space-between;
@@ -93,6 +91,70 @@
   color: #0288d1;
 }
 
+.detail-characteristics-section {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.characteristics-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.characteristics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.characteristic-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.characteristic-item:hover {
+  transform: translateY(-2px);
+  background: rgba(2, 136, 209, 0.15);
+  border-color: rgba(2, 136, 209, 0.4);
+}
+
+.characteristic-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.characteristic-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.no-characteristics-msg {
+  font-family: 'Poppins', sans-serif;
+  color: #b0bec5;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .characteristics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .detail-gallery-title {
   font-family: 'Josefin Sans', sans-serif;
   font-size: 1.6rem;
@@ -100,7 +162,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* ARQUITECTURA DE LA GALERÍA DE IMÁGENES (BENTO GRID 100% ANCHO) */
 .gallery-wrapper {
   position: relative;
   width: 100%;
@@ -110,7 +171,7 @@
   position: relative;
   width: 100%;
   display: flex;
-  flex-direction: column; /* Comportamiento base móvil vertical */
+  flex-direction: column;
   gap: 0.75rem;
   border-radius: 14px;
   overflow: hidden;
@@ -148,7 +209,6 @@
   border-radius: 8px;
 }
 
-/* Botón flotante inferior derecho */
 .gallery-view-more-trigger {
   position: absolute;
   bottom: 12px;
@@ -173,7 +233,6 @@
   transform: scale(1.05);
 }
 
-/* RESPONSIVIDAD: TABLET (600px a 900px) */
 @media (min-width: 600px) {
   .gallery-main-half {
     height: 380px;
@@ -189,11 +248,10 @@
   }
 }
 
-/* RESPONSIVIDAD: DESKTOP EXPERT (900px en adelante) */
 @media (min-width: 900px) {
   .gallery-block {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 50% Izquierda y 50% Derecha */
+    grid-template-columns: 1fr 1fr;
     height: 480px;
     gap: 1rem;
   }
@@ -206,7 +264,7 @@
   .gallery-subgrid-half {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr); /* Grilla simétrica 2x2 */
+    grid-template-rows: repeat(2, 1fr);
     gap: 1rem;
     height: 100%;
     width: 100%;
@@ -218,7 +276,6 @@
   }
 }
 
-/* ESTADOS DE CARGA Y FALLO */
 .detail-status-container {
   width: 100%;
   padding: 6rem 2rem;
@@ -232,7 +289,6 @@
   margin-bottom: 2rem;
 }
 
-/* MODAL DE EXPANSIÓN (Aislamiento de UI) */
 .gallery-modal-overlay {
   position: relative;
   position: fixed;

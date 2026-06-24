@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import '../../../styles/AdminPanel.css';
 
-function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
+function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, onSuccess }) {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    destination: '',
-    category: 'todos',
-    price: '',
-    currency: 'USD'
+    name: flightToEdit?.name || '',
+    description: flightToEdit?.description || '',
+    destination: flightToEdit?.destination || '',
+    category: flightToEdit?.category || 'todos',
+    price: flightToEdit?.price || '',
+    currency: flightToEdit?.currency || 'USD'
   });
 
-  const [images, setImages] = useState(['']);
+  const [images, setImages] = useState(flightToEdit?.images || ['']);
   const [errorBackend, setErrorBackend] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,14 +35,12 @@ function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
     if (file) {
       if (file.size > 2 * 1024 * 1024) { 
         alert("El archivo es muy pesado. Por favor suba una imagen menor a 2MB.");
-        // FIX: Limpiamos el input file para que no quede trabado en la memoria del navegador
         event.target.value = ''; 
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         handleImageUrlChange(index, reader.result);
-        // FIX: También lo limpiamos al terminar el éxito, por si luego borran la foto y quieren subir exactamente la misma
         event.target.value = '';
       };
       reader.readAsDataURL(file);
@@ -81,20 +79,41 @@ function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
 
     try {
       setIsSubmitting(true);
-      const response = await fetch('/api/vuelos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        if (response.status === 400 || response.status === 500) {
-          throw new Error('El nombre de este vuelo ya existe, por favor elija otro o revise los datos.');
+      
+      if (flightToEdit) {
+        if (String(flightToEdit.id).startsWith('mock-')) {
+          onSuccess(payload, flightToEdit.id);
+          return;
         }
-        throw new Error('Error al crear el vuelo. Intente nuevamente.');
-      }
 
-      onSuccess();
+        const response = await fetch(`/api/vuelos/${flightToEdit.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar el vuelo en el servidor. Verifique los datos.');
+        }
+        
+        onSuccess();
+      } else {
+        // Modo Alta / Creación
+        const response = await fetch('/api/vuelos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          if (response.status === 400 || response.status === 500) {
+            throw new Error('El nombre de este vuelo ya existe, por favor elija otro o revise los datos.');
+          }
+          throw new Error('Error al crear el vuelo. Intente nuevamente.');
+        }
+
+        onSuccess();
+      }
     } catch (error) {
       setErrorBackend(error.message);
     } finally {
@@ -104,9 +123,24 @@ function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
 
   return (
     <div className="glass-form-panel">
+      <div className="form-header">
+        <button
+          type="button"
+          className="btn-secondary btn-back"
+          onClick={() => {
+            if (onCancel) {
+              onCancel();
+            } else {
+              window.history.back();
+            }
+          }}
+        >
+          ← Volver
+        </button>
+      </div>
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="form-group full-width">
-          <label className="form-label">Nombre del Producto / Vuelo Especial</label>
+          <label className="form-label">Nombre del paquete turístico</label>
           <input
             type="text"
             name="name"
@@ -158,6 +192,7 @@ function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
             <option value="montaña">Montaña</option>
             <option value="ciudad">Ciudad</option>
             <option value="historico">Histórico</option>
+            <option value="naturaleza">Naturaleza</option>
           </select>
         </div>
 
@@ -277,7 +312,7 @@ function FlightForm({ existingDestinations = [], onCancel, onSuccess }) {
             Cancelar
           </button>
           <button type="submit" className="btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Guardando...' : 'Guardar Vuelo'}
+            {isSubmitting ? 'Guardando...' : flightToEdit ? 'Actualizar Vuelo' : 'Guardar Vuelo'}
           </button>
         </div>
       </form>

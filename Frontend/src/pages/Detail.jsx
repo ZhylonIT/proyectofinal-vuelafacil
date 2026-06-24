@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FlightGallery from '../features/flights/components/FlightGallery';
 import '../styles/FlightDetail.css';
 
-// Base de datos de contingencia idéntica para resolución offline/mock
 const INITIAL_MOCK_FLIGHTS = [
   { id: 'mock-1', destination: 'San Carlos de Bariloche', description: 'Disfruta de la nieve, los lagos andinos y los mejores chocolates de la Patagonia.', category: 'montaña', price: 120000, currency: 'ARS', images: ['https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=1200&auto=format&fit=crop'] },
   { id: 'mock-2', destination: 'Río de Janeiro', description: 'Playas paradisíacas, el Cristo Redentor y una cultura vibrante todo el año.', category: 'playa', price: 380000, currency: 'ARS', images: [] },
@@ -36,7 +35,6 @@ function Detail() {
           setFlight(fallback || null);
         }
       } catch (error) {
-        // FIX: Se inyecta la variable 'error' en el log para cumplir la pureza del Linter
         console.warn(`Servidor OFF - Extrayendo detalle desde almacenamiento local. Motivo: ${error.message}`);
         const fallback = INITIAL_MOCK_FLIGHTS.find(f => String(f.id) === String(id));
         setFlight(fallback || null);
@@ -47,6 +45,36 @@ function Detail() {
 
     fetchFlightDetail();
   }, [id]);
+
+  const destinationData = useMemo(() => {
+    if (!flight || !flight.destination) return { chars: [], description: '' };
+
+    const globalCharsRaw = localStorage.getItem('vuelafacil_characteristics');
+    const globalChars = globalCharsRaw ? JSON.parse(globalCharsRaw) : [
+      { id: 'char-1', name: 'Apto Familia', icon: '👨‍👩‍👧‍👦' },
+      { id: 'char-2', name: 'Aventura Externa', icon: '🧗' },
+      { id: 'char-3', name: 'Relajación Total', icon: '💆' },
+      { id: 'char-4', name: 'Wifi Alta Velocidad', icon: '📶' }
+    ];
+
+    const destDetailsRaw = localStorage.getItem('vuelafacil_destination_details');
+    const destDetails = destDetailsRaw ? JSON.parse(destDetailsRaw) : {};
+
+    const destData = destDetails[flight.destination];
+    let matchedChars = [];
+    let destDescription = '';
+
+    if (destData) {
+      destDescription = destData.description || '';
+      if (destData.characteristics) {
+        matchedChars = destData.characteristics
+          .map(charId => globalChars.find(c => c.id === charId))
+          .filter(Boolean);
+      }
+    }
+    
+    return { chars: matchedChars, description: destDescription };
+  }, [flight]);
 
   if (loading) {
     return (
@@ -81,11 +109,47 @@ function Detail() {
       <section className="detail-body">
         <div className="detail-info-card">
           <span className="detail-badge">{flight.category}</span>
-          <p className="detail-description">{flight.description || flight.descripcion}</p>
+          
+          {/* Descripción del paquete/vuelo */}
+          <p className="detail-description" style={{ marginBottom: '1.5rem' }}>
+            <strong>Sobre el paquete:</strong> {flight.description || flight.descripcion}
+          </p>
+
           <div className="detail-pricing">
             <span className="pricing-label">Tarifa Preferencial:</span>
             <span className="pricing-value">Desde {flight.currency} ${flight.price}</span>
           </div>
+
+          <div className="detail-characteristics-section">
+            {/* Descripción General del Destino */}
+            {destinationData.description && (
+              <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
+                <h3 className="characteristics-title" style={{ fontSize: '1.2rem', marginBottom: '0.8rem', color: '#8ab4f8' }}>
+                  Conoce {flight.destination}
+                </h3>
+                <p className="detail-description" style={{ fontSize: '0.95rem', color: '#b0bec5', margin: 0 }}>
+                  {destinationData.description}
+                </p>
+              </div>
+            )}
+
+            <h3 className="characteristics-title">Características</h3>
+            {destinationData.chars.length > 0 ? (
+              <div className="characteristics-grid">
+                {destinationData.chars.map(char => (
+                  <div key={char.id} className="characteristic-item">
+                    <span className="characteristic-icon">{char.icon}</span>
+                    <span className="characteristic-name">{char.name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="no-characteristics-msg">
+                Este destino aún no tiene características adicionales registradas en el catálogo.
+              </p>
+            )}
+          </div>
+
         </div>
       </section>
 
