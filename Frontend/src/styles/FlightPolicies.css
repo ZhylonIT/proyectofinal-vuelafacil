@@ -1,0 +1,73 @@
+.policies-section {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2rem;
+}
+
+.policies-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-color: #0288d1;
+  text-decoration-thickness: 2px;
+}
+
+.policies-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.policy-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  box-sizing: border-box;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.policy-card:hover {
+  background: rgba(2, 136, 209, 0.12);
+  border-color: rgba(2, 136, 209, 0.35);
+  transform: translateY(-2px);
+}
+
+.policy-card-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #8ab4f8;
+  margin: 0 0 0.6rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.policy-card-description {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  color: #b0bec5;
+  line-height: 1.65;
+  margin: 0;
+}
+
+@media (min-width: 600px) {
+  .policies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .policies-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import '../../../styles/FlightSearch.css';
 import bannerImage from '../../../assets/images/banner.png';
+import { MOCK_CITIES } from '../utils/mockCities';
 
 const passengerOptions = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -13,9 +14,62 @@ function FlightSearch({ onSearch }) {
     passengers: 1,
   });
 
+  const [activeField, setActiveField] = useState(null);
+  const [filteredOptions, setFilteredOptions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setSearchParams((prev) => ({ ...prev, [name]: value }));
+    setHighlightedIndex(-1);
+
+    if (name === 'origin' || name === 'destination') {
+      if (value.length >= 2) {
+        const filtered = MOCK_CITIES.filter(city => 
+          city.toLowerCase().includes(value.toLowerCase())
+        );
+        setFilteredOptions(filtered);
+        setActiveField(name);
+      } else {
+        setFilteredOptions([]);
+        setActiveField(null);
+      }
+    }
+  };
+
+  const handleSelectSuggestion = (name, value) => {
+    setSearchParams((prev) => ({ ...prev, [name]: value }));
+    setFilteredOptions([]);
+    setActiveField(null);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (e, fieldName) => {
+    if (activeField === fieldName && filteredOptions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => 
+          prev < filteredOptions.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => 
+          prev > 0 ? prev - 1 : filteredOptions.length - 1
+        );
+      } else if (e.key === 'Enter') {
+        if (highlightedIndex >= 0) {
+          e.preventDefault();
+          handleSelectSuggestion(fieldName, filteredOptions[highlightedIndex]);
+        }
+      } else if (e.key === 'Tab') {
+        if (highlightedIndex >= 0) {
+          handleSelectSuggestion(fieldName, filteredOptions[highlightedIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        setActiveField(null);
+        setHighlightedIndex(-1);
+      }
+    }
   };
 
   const handleSearch = (e) => {
@@ -52,9 +106,25 @@ function FlightSearch({ onSearch }) {
                 name="origin"
                 value={searchParams.origin}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'origin')}
+                onBlur={() => setTimeout(() => setActiveField(null), 200)}
                 placeholder="Ej. Buenos Aires"
+                autoComplete="off"
                 required
               />
+              {activeField === 'origin' && filteredOptions.length > 0 && (
+                <ul className="suggestions-list">
+                  {filteredOptions.map((city, index) => (
+                    <li 
+                      key={index} 
+                      className={`suggestion-item ${index === highlightedIndex ? 'suggestion-item--highlighted' : ''}`}
+                      onClick={() => handleSelectSuggestion('origin', city)}
+                    >
+                      {city}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="flight-search-field-wrapper">
@@ -64,9 +134,25 @@ function FlightSearch({ onSearch }) {
                 name="destination"
                 value={searchParams.destination}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'destination')}
+                onBlur={() => setTimeout(() => setActiveField(null), 200)}
                 placeholder="Ej. Madrid"
+                autoComplete="off"
                 required
               />
+              {activeField === 'destination' && filteredOptions.length > 0 && (
+                <ul className="suggestions-list">
+                  {filteredOptions.map((city, index) => (
+                    <li 
+                      key={index} 
+                      className={`suggestion-item ${index === highlightedIndex ? 'suggestion-item--highlighted' : ''}`}
+                      onClick={() => handleSelectSuggestion('destination', city)}
+                    >
+                      {city}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="flight-search-field-wrapper">

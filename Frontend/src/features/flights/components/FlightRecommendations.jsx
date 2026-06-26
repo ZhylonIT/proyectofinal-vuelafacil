@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/FlightRecommendations.css';
 import RioImage from '../../../assets/images/rio.jpg';
@@ -28,6 +28,25 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
   const [prevCategory, setPrevCategory] = useState(activeCategory);
   const [prevSearchCriteria, setPrevSearchCriteria] = useState(searchCriteria);
 
+  const [userSession] = useState(() => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (isLoggedIn && currentUser && currentUser.email) {
+      return { isLoggedIn: true, email: currentUser.email };
+    }
+    return { isLoggedIn: false, email: null };
+  });
+
+  const [favorites, setFavorites] = useState(() => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (isLoggedIn && currentUser && currentUser.email) {
+      const allFavorites = JSON.parse(localStorage.getItem('vuelafacil_favorites') || '{}');
+      return new Set(allFavorites[currentUser.email] || []);
+    }
+    return new Set();
+  });
+
   if (activeCategory !== prevCategory || searchCriteria !== prevSearchCriteria) {
     setPrevCategory(activeCategory);
     setPrevSearchCriteria(searchCriteria);
@@ -44,7 +63,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
         let combinedData = [];
 
         if (response.ok) {
-          const data = await response.json();           
+          const data = await response.json();          
           combinedData = [...data, ...INITIAL_MOCK_FLIGHTS];
         } else {
           combinedData = INITIAL_MOCK_FLIGHTS;
@@ -77,6 +96,27 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
 
     fetchFlights();
   }, []);
+
+  const toggleFavorite = useCallback((e, flightId) => {
+    e.stopPropagation();
+    
+    if (!userSession.isLoggedIn || !userSession.email) return;
+
+    setFavorites(prevFavorites => {
+      const newFavorites = new Set(prevFavorites);
+      if (newFavorites.has(flightId)) {
+        newFavorites.delete(flightId);
+      } else {
+        newFavorites.add(flightId);
+      }
+
+      const allFavorites = JSON.parse(localStorage.getItem('vuelafacil_favorites') || '{}');
+      allFavorites[userSession.email] = Array.from(newFavorites);
+      localStorage.setItem('vuelafacil_favorites', JSON.stringify(allFavorites));
+
+      return newFavorites;
+    });
+  }, [userSession]);
 
   const targetDestinationProfile = useMemo(() => {
     if (!searchCriteria) return null;
@@ -132,6 +172,26 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     return items;
   }, [searchCriteria, targetDestinationProfile]);
 
+  const reviewsMap = useMemo(() => {
+    try {
+      const allReviews = JSON.parse(localStorage.getItem('vuelafacil_reviews') || '{}');
+      const map = {};
+      Object.keys(allReviews).forEach(productId => {
+        const productReviews = allReviews[productId];
+        if (productReviews.length > 0) {
+          const sum = productReviews.reduce((acc, r) => acc + r.rating, 0);
+          map[productId] = {
+            average: (sum / productReviews.length).toFixed(1),
+            total: productReviews.length
+          };
+        }
+      });
+      return map;
+    } catch {
+      return {};
+    }
+  }, []);
+
   const processedFlights = useMemo(() => {
     const details = JSON.parse(localStorage.getItem('vuelafacil_destination_details') || '{}');
     
@@ -148,16 +208,19 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     return filtered;
   }, [recommendations, activeCategory, searchCriteria, generatedSearchResults, activeCharacteristics]);
 
+  const paginatedFlightsWithReviews = useMemo(() => {
+    const startIndex = searchCriteria ? (currentPage - 1) * 10 : 0;
+    const endIndex = searchCriteria ? startIndex + 10 : 10;
+    const sliced = processedFlights.slice(startIndex, endIndex);
+    
+    return sliced.map(flight => ({
+      ...flight,
+      reviewData: reviewsMap[flight.id] || { average: '0.0', total: 0 }
+    }));
+  }, [processedFlights, searchCriteria, currentPage, reviewsMap]);
+
   const totalItems = processedFlights.length;
   const totalPages = Math.ceil(totalItems / 10);
-
-  const paginatedFlights = useMemo(() => {
-    if (searchCriteria) {
-      const startIndex = (currentPage - 1) * 10;
-      return processedFlights.slice(startIndex, startIndex + 10);
-    }
-    return processedFlights.slice(0, 10);
-  }, [processedFlights, searchCriteria, currentPage]);
   
   const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
@@ -190,12 +253,12 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
         )}
       </div>
       
-      {paginatedFlights.length === 0 ? (
+      {paginatedFlightsWithReviews.length === 0 ? (
         <p className="no-results">No hay vuelos disponibles para los criterios seleccionados por el momento.</p>
       ) : (
         <>
           <div className="recommendations-grid">
-            {paginatedFlights.map((flight) => (
+            {paginatedFlightsWithReviews.map((flight) => (
               <article key={flight.id} className="flight-card">
                 <div className="flight-image-wrapper">
                   <img 
@@ -204,19 +267,52 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
                     className="flight-image" 
                     loading="lazy"
                   />
+                  
                   <span className="flight-category-badge">{capitalize(flight.category)}</span>
+
+                  {userSession.isLoggedIn && (
+                    <button 
+                      className={`favorite-btn ${favorites.has(flight.id) ? 'active' : ''}`}
+                      onClick={(e) => toggleFavorite(e, flight.id)}
+                      aria-label={favorites.has(flight.id) ? "Quitar de favoritos" : "Marcar como favorito"}
+                      title={favorites.has(flight.id) ? "Quitar de favoritos" : "Añadir a favoritos"}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path 
+                          d="M12.62 20.81C12.28 20.93 11.72 20.93 11.38 20.81C8.48 19.82 2 15.69 2 8.68998C2 5.59998 4.49 3.09998 7.56 3.09998C9.38 3.09998 10.99 3.97998 12 5.33998C13.01 3.97998 14.63 3.09998 16.44 3.09998C19.51 3.09998 22 5.59998 22 8.68998C22 15.69 15.52 19.82 12.62 20.81Z" 
+                          stroke="currentColor" 
+                          strokeWidth="1.5" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          className="heart-path"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="flight-info">
                   <h3 className="flight-destination">{flight.destination}</h3>
+                  
+                  <div className="flight-reviews-summary">
+                    <span className="flight-stars" aria-label={`${flight.reviewData.average} estrellas`}>
+                      {[1,2,3,4,5].map(star => (
+                        <span key={star} className={star <= Math.round(Number(flight.reviewData.average)) ? 'star-filled' : 'star-empty'}>★</span>
+                      ))}
+                    </span>
+                    <span className="flight-reviews-count">
+                      {flight.reviewData.total > 0 
+                        ? `(${flight.reviewData.total} valoracione${flight.reviewData.total === 1 ? '' : 's'})`
+                        : 'Sin valoraciones'}
+                    </span>
+                  </div>
+
                   <p className="flight-description">{flight.description || flight.descripcion}</p>
                   <div className="flight-footer">
                     <span className="flight-price">Desde <strong>${flight.price.toLocaleString('es-AR')}</strong> {flight.currency}</span>
-                    <button 
-                      className="flight-btn"
-                      onClick={() => navigate(`/detail/${flight.id}`)}
-                    >
-                      Ver Detalle
-                    </button>
+                    <div className="flight-actions">
+                      <button className="flight-btn" onClick={() => navigate(`/detail/${flight.id}`)}>Ver Detalle</button>
+                      <button className="flight-btn reserve-btn" onClick={() => navigate(`/detail/${flight.id}#availability`)}>Reservar</button>
+                    </div>
                   </div>
                 </div>
               </article>

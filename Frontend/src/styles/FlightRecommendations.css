@@ -94,6 +94,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  z-index: 2;
 }
 
 .flight-info {
@@ -109,6 +110,33 @@
   font-weight: 600;
   color: #222;
   margin: 0 0 0.5rem 0;
+}
+
+.flight-reviews-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.flight-stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 1rem;
+}
+
+.flight-stars .star-filled {
+  color: #ffc107;
+}
+
+.flight-stars .star-empty {
+  color: #cccccc;
+}
+
+.flight-reviews-count {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  color: #666;
 }
 
 .flight-description {
@@ -155,4 +183,64 @@
 .flight-btn:hover {
   background-color: #0288d1;
   color: white;
+}
+
+.flight-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.reserve-btn {
+  background-color: #0288d1;
+  color: #ffffff;
+  border: none;
+}
+
+.reserve-btn:hover {
+  background-color: #5fd0d8;
+  color: #ffffff;
+}
+
+.favorite-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.favorite-btn:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+}
+
+.favorite-btn:active {
+  transform: scale(0.9);
+}
+
+.favorite-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.favorite-btn.active svg {
+  color: #ff4757;
+}
+
+.favorite-btn.active .heart-path {
+  fill: #ff4757;
+  stroke: #ff4757;
 }
