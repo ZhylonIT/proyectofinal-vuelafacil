@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Login.css';
 
-function LoginForm() {
+function LoginForm({ redirectUrl }) {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -63,13 +63,12 @@ function LoginForm() {
     const registeredUserStr = localStorage.getItem('registeredUser');    
     const registeredUser = registeredUserStr ? { role: 'user', ...JSON.parse(registeredUserStr) } : null;
 
-    // Cuenta admin
     const mockAdmin = {
       id: 'admin-001',
       firstName: 'Admin',
       lastName: 'Vuela Fácil',
       email: 'admin@vuelafacil.com',
-      password: 'admin123',
+      password: 'admin',
       role: 'admin'
     };
 
@@ -92,7 +91,9 @@ function LoginForm() {
           role: matchedUser.role 
         }));
 
-        if (matchedUser.role === 'admin') {
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else if (matchedUser.role === 'admin') {
           navigate('/administracion');
         } else {
           navigate('/');

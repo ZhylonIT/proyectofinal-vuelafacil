@@ -1,0 +1,554 @@
+.booking-page-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120px 20px 40px 20px;
+  box-sizing: border-box;
+}
+
+.booking-card {
+  width: 100%;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 8px 32px 0 rgba(11, 59, 90, 0.15);
+  box-sizing: border-box;
+}
+
+.booking-title {
+  color: #0B3B5A;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+.booking-flight-summary {
+  margin-bottom: 24px;
+}
+
+.booking-destination {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.5rem;
+  color: #0B3B5A;
+  margin: 0 0 8px 0;
+}
+
+.booking-description {
+  font-family: 'Poppins', sans-serif;
+  color: #4A5568;
+  font-size: 0.95rem;
+  margin: 0 0 12px 0;
+}
+
+.booking-price {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.2rem;
+  color: #0288d1;
+  margin: 0 0 16px 0;
+}
+
+.booking-dates {
+  background: rgba(2, 136, 209, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.booking-date-label {
+  font-weight: 600;
+  color: #0B3B5A;
+}
+
+.booking-dates p {
+  margin: 4px 0;
+  font-family: 'Poppins', sans-serif;
+  color: #243A69;
+}
+
+.booking-no-dates {
+  color: #E53E3E;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.booking-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: #0288d1;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.booking-confirm-btn:hover:not(:disabled) {
+  background-color: #0277bd;
+}
+
+.booking-confirm-btn:disabled {
+  background-color: #A0AEC0;
+  cursor: not-allowed;
+}
+
+.booking-success-section {
+  margin-top: 24px;
+}
+
+.booking-success-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.booking-success-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.booking-success-title {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.8rem;
+  color: #4caf50;
+  margin: 0 0 12px 0;
+}
+
+.booking-success-details {
+  font-family: 'Poppins', sans-serif;
+  color: #0B3B5A;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.booking-review-wrapper {
+  margin-top: 24px;
+}
+
+.booking-loading,
+.booking-error {
+  color: #ffffff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.2rem;
+}
+
+.booking-back-btn {
+  background: transparent;
+  color: #0288d1;
+  border: 1px solid #0288d1;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.booking-card .review-section-title,
+.booking-card .review-form-title,
+.booking-card .review-form-label,
+.booking-card .review-user-name {
+  color: #0B3B5A;
+}
+
+.booking-card .review-total,
+.booking-card .review-empty,
+.booking-card .review-card-comment,
+.booking-card .no-characteristics-msg {
+  color: #4A5568;
+}
+
+.booking-card .review-date {
+  color: #718096;
+}
+
+.booking-card .review-summary,
+.booking-card .review-form,
+.booking-card .review-login-prompt,
+.booking-card .review-card {
+  background: rgba(2, 136, 209, 0.05);
+  border: 1px solid rgba(2, 136, 209, 0.15);
+  backdrop-filter: blur(6px);
+}
+
+.booking-card .review-card:hover {
+  background: rgba(2, 136, 209, 0.1);
+  border-color: rgba(2, 136, 209, 0.3);
+}
+
+.booking-card .review-comment-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(11, 59, 90, 0.3);
+  color: #0B3B5A;
+}
+
+.booking-card .review-comment-input::placeholder {
+  color: #A0AEC0;
+}
+
+.booking-card .review-star.star-empty {
+  color: #CBD5E0;
+}
+
+.booking-card .review-submit-btn {
+  background-color: #0288d1;
+  color: #ffffff;
+}
+
+.booking-card .review-submit-btn:hover {
+  background-color: #0277bd;
+}
+
+.booking-card .review-login-link {
+  color: #0288d1;
+}
+
+.package-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.package-option {
+  background: rgba(2, 136, 209, 0.05);
+  border: 1px solid rgba(2, 136, 209, 0.15);
+  border-radius: 8px;
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.package-option:hover {
+  background: rgba(2, 136, 209, 0.1);
+  border-color: rgba(2, 136, 209, 0.4);
+}
+
+.package-option.selected {
+  background: rgba(2, 136, 209, 0.15);
+  border-color: #0288d1;
+  box-shadow: 0 0 0 2px rgba(2, 136, 209, 0.3);
+}
+
+.package-option h3 {
+  margin: 0 0 0.5rem 0;
+  color: #0B3B5A;
+  font-family: 'Josefin Sans', sans-serif;
+}
+
+.package-option p {
+  color: #4A5568;
+  margin: 0 0 0.8rem 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.package-price {
+  font-weight: 600;
+  color: #0288d1;
+  font-family: 'Poppins', sans-serif;
+  display: block;
+  margin-bottom: 0.8rem;
+}
+
+.select-package-btn {
+  background: #0288d1;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.booking-subtitle {
+  font-family: 'Josefin Sans', sans-serif;
+  color: #0B3B5A;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.booking-summary {
+  background: rgba(2, 136, 209, 0.03);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.booking-user-info {
+  background: rgba(2, 136, 209, 0.05);
+  border: 1px solid rgba(2, 136, 209, 0.15);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.booking-user-info p {
+  margin: 0.3rem 0;
+  color: #0B3B5A;
+  font-family: 'Poppins', sans-serif;
+}
+
+.email-sending-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1.5rem;
+  color: #4A5568;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(2, 136, 209, 0.2);
+  border-left-color: #0288d1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Vista previa del correo */
+.email-preview {
+  margin-top: 2rem;
+  border: 2px solid #0288d1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.email-preview-header {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  padding: 12px 16px;
+}
+
+.email-preview-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.1rem;
+}
+
+.email-preview-content {
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
+  color: #0B3B5A;
+  line-height: 1.6;
+}
+
+.email-preview-content hr {
+  border: none;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  margin: 16px 0;
+}
+
+.email-booking-details {
+  background: #F7FAFC;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.email-booking-details p {
+  margin: 6px 0;
+}
+
+.email-contact-info {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.email-footer-note {
+  font-size: 0.8rem;
+  color: #A0AEC0;
+  font-style: italic;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+  .booking-page-container {
+    padding: 100px 12px 24px;
+    align-items: flex-start;
+  }
+
+  .booking-card {
+    padding: 24px 18px;
+    border-radius: 14px;
+  }
+
+  .booking-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
+
+  .booking-destination {
+    font-size: 1.25rem;
+  }
+
+  .booking-description {
+    font-size: 0.9rem;
+  }
+
+  .booking-dates {
+    padding: 10px 12px;
+  }
+
+  .booking-confirm-btn {
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+
+  .package-option {
+    padding: 1rem;
+  }
+
+  .booking-summary,
+  .booking-user-info {
+    padding: 0.9rem;
+  }
+
+  .email-preview-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-page-container {
+    padding: 90px 8px 20px;
+  }
+
+  .booking-card {
+    padding: 18px 14px;
+    border-radius: 12px;
+  }
+
+  .booking-title {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+  }
+
+  .booking-destination {
+    font-size: 1.1rem;
+  }
+
+  .booking-description,
+  .booking-price,
+  .booking-dates p,
+  .booking-success-details,
+  .booking-user-info p {
+    font-size: 0.9rem;
+  }
+
+  .booking-confirm-btn {
+    font-size: 0.9rem;
+  }
+
+  .booking-success-icon {
+    font-size: 2.4rem;
+  }
+
+  .booking-success-title {
+    font-size: 1.4rem;
+  }
+
+  .package-option {
+    padding: 0.9rem;
+  }
+
+  .package-option h3 {
+    font-size: 1rem;
+  }
+
+  .package-price {
+    font-size: 0.95rem;
+  }
+
+  .select-package-btn {
+    width: 100%;
+    padding: 0.7rem;
+  }
+
+  .booking-summary,
+  .booking-user-info {
+    margin: 1rem 0;
+  }
+
+  .email-preview-header h3 {
+    font-size: 1rem;
+  }
+
+  .email-preview-content {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .booking-page-container {
+    padding: 84px 6px 16px;
+  }
+
+  .booking-card {
+    padding: 14px 10px;
+  }
+
+  .booking-title {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .booking-destination {
+    font-size: 1rem;
+  }
+
+  .booking-description,
+  .booking-price,
+  .booking-dates p,
+  .booking-user-info p,
+  .booking-success-details {
+    font-size: 0.85rem;
+  }
+
+  .booking-dates {
+    padding: 8px 10px;
+  }
+
+  .booking-confirm-btn {
+    padding: 10px;
+    font-size: 0.88rem;
+  }
+
+  .package-option {
+    padding: 0.8rem;
+  }
+
+  .package-option p {
+    font-size: 0.85rem;
+  }
+
+  .booking-back-btn {
+    width: 100%;
+  }
+
+  .email-preview-content {
+    padding: 10px;
+  }
+}

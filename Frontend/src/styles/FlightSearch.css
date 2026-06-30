@@ -170,3 +170,38 @@ select.flight-search-input option {
   font-weight: 600;
   color: #0288d1;
 }
+
+@media (max-width: 480px) {
+  .flight-search-paper {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .flight-search-title {
+    font-size: 1.4rem;
+  }
+
+  .flight-search-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .flight-search-button-row {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .flight-search-paper {
+    padding: 1rem;
+  }
+
+  .flight-search-input {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+
+  .flight-search-button {
+    padding: 10px 16px;
+    font-size: 0.95rem;
+  }
+}

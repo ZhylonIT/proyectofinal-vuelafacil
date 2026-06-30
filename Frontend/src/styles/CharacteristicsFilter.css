@@ -50,3 +50,16 @@
   border-color: #0288d1;
   box-shadow: 0 0 8px rgba(2, 136, 209, 0.4);
 }
+
+@media (max-width: 600px) {
+  .filter-container {
+    padding: 1rem;
+  }
+  .filter-grid {
+    gap: 0.5rem;
+  }
+  .filter-chip {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}

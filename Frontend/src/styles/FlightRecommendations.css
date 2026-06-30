@@ -244,3 +244,45 @@
   fill: #ff4757;
   stroke: #ff4757;
 }
+
+@media (max-width: 400px) {
+  .flight-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .flight-actions {
+    width: 100%;
+  }
+
+  .flight-actions .flight-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .recommendations-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .recommendations-title {
+    font-size: 1.2rem;
+    margin-left: 0.25rem;
+  }
+
+  .flight-info {
+    padding: 1rem;
+  }
+
+  .flight-destination {
+    font-size: 1.1rem;
+  }
+
+  .flight-description {
+    font-size: 0.8rem;
+  }
+}

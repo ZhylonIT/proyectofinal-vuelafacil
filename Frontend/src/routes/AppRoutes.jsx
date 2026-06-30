@@ -5,12 +5,15 @@ import Admin from '../pages/Admin';
 import Register from '../pages/Register';
 import Login from '../pages/Login';
 import Profile from '../pages/Profile';
+import Booking from '../pages/Booking';
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Mainlayout />} />      
       <Route path="/detail/:id" element={<Detail />} />      
+      <Route path="/reserva" element={<Booking />} />           
+      <Route path="/reserva/:id" element={<Booking />} />       
       <Route path="/administracion" element={<Admin />} />
       <Route path="/registro" element={<Register />} />
       <Route path="/login" element={<Login />} />

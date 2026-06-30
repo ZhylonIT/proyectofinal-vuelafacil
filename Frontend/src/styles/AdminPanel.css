@@ -356,3 +356,76 @@
   background: rgba(255,255,255,0.2);
   border-radius: 4px;
 }
+
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 0.8rem;
+  }
+
+  .admin-header-actions,
+  .form-header,
+  .admin-table-header-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-title {
+    font-size: 1.7rem;
+  }
+
+  .glass-form-panel {
+    padding: 1.25rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+
+  .form-actions-footer {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions-footer .btn-primary,
+  .form-actions-footer .btn-secondary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-container {
+    padding: 0.6rem;
+  }
+
+  .admin-title {
+    font-size: 1.45rem;
+  }
+
+  .glass-form-panel,
+  .glass-modal-content {
+    padding: 1rem;
+  }
+
+  .destinations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .destination-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .admin-title {
+    font-size: 1.25rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

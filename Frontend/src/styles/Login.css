@@ -24,7 +24,7 @@
   border-radius: 16px;
   padding: 40px;
   box-shadow: 0 8px 32px 0 rgba(11, 59, 90, 0.15);
-  box-sizing: border-box;
+  box-sizing: border-box; 
 }
 
 @media (max-width: 480px) {
@@ -146,4 +146,36 @@
 .login-submit-btn:disabled {
   background-color: #A0AEC0;
   cursor: not-allowed;
+}
+
+.login-reserva-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #FFF8E1;
+  border: 1px solid #FFE082;
+  border-radius: 8px;
+  padding: 14px 16px;
+  color: #F57F17;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.login-reserva-banner svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #F57F17;
+}
+
+.login-banner-link {
+  color: #243A69;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.login-banner-link:hover {
+  color: #1a2a4d;
 }

@@ -237,3 +237,45 @@
   margin-top: 0.8rem;
   margin-bottom: 0;
 }
+
+@media (max-width: 600px) {
+  .review-summary, .review-form, .review-card {
+    padding: 1rem;
+  }
+  .review-section-title {
+    font-size: 1.3rem;
+  }
+  .review-average-number {
+    font-size: 2rem;
+  }
+  .review-average-stars .review-star {
+    font-size: 1.4rem;
+  }
+  .review-star.star-interactive {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .review-summary,
+  .review-form,
+  .review-card,
+  .review-login-prompt {
+    padding: 0.85rem;
+  }
+
+  .review-section-title {
+    font-size: 1.15rem;
+  }
+
+  .review-form-stars {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .review-submit-btn {
+    width: 100%;
+    padding: 0.8rem;
+  }
+}

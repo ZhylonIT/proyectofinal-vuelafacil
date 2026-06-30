@@ -37,6 +37,12 @@ const POLICIES = [
     description:
       'Los menores que viajen sin ambos progenitores deberán presentar autorización notarial vigente. Consultá con nuestro equipo las regulaciones específicas del destino.',
   },
+  {
+    id: 'policy-7',
+    title: 'Privacidad y WhatsApp',
+    description:
+      'Al comunicarte por WhatsApp, tus datos (nombre, número de teléfono y contenido del mensaje) son tratados conforme a nuestra política de privacidad. No compartimos tu información con terceros. El canal está cifrado de extremo a extremo según los estándares de WhatsApp.',
+  },
 ];
 
 function FlightPolicies() {

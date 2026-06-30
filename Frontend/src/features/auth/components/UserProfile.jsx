@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useReducer, useRef } from 'react';
+import { useEffect, useState, useCallback, useReducer, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Profile.css';
 import RioImage from '../../../assets/images/rio.jpg';
@@ -9,6 +9,7 @@ import NewYorkImage from '../../../assets/images/ny.jpg';
 import UshuaiaImage from '../../../assets/images/ushuaia.jpg';
 import MiamiImage from '../../../assets/images/miami.jpg';
 import IguazuImage from '../../../assets/images/iguazu.jpg';
+import MOCK_PACKAGES from '../../flights/utils/mockPackages';
 
 const INITIAL_MOCK_FLIGHTS = [
   { id: 'mock-2', destination: 'Río de Janeiro', description: 'Playas paradisíacas, el Cristo Redentor y una cultura vibrante todo el año.', category: 'playa', price: 380000, currency: 'ARS', images: [RioImage] },
@@ -44,11 +45,31 @@ function UserProfile() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('isLoggedIn') === 'true');
   const [userData, setUserData] = useState(() => JSON.parse(localStorage.getItem('currentUser') || 'null'));
 
+  const [optionalData, setOptionalData] = useState(() => ({
+    address: userData?.address || '',
+    phone: userData?.phone || '',
+    city: userData?.city || ''
+  }));
+
+  const [editMode, setEditMode] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
   const [favState, dispatch] = useReducer(favReducer, {
     status: 'idle',
     flights: [],
     error: null,
   });
+
+  const bookingHistory = useMemo(() => {
+    if (!userData?.email) return [];
+    try {
+      const allBookings = JSON.parse(localStorage.getItem('vuelafacil_bookings') || '{}');
+      const userBookings = allBookings[userData.email] || [];
+      return userBookings.sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate));
+    } catch {
+      return [];
+    }
+  }, [userData]);
 
   const loadFavorites = useCallback(async (email) => {
     const allFavorites = JSON.parse(localStorage.getItem('vuelafacil_favorites') || '{}');
@@ -56,18 +77,26 @@ function UserProfile() {
 
     if (userFavIds.size === 0) return [];
 
-    let combinedData = INITIAL_MOCK_FLIGHTS;
+    let combinedData = [...INITIAL_MOCK_FLIGHTS];
+
     try {
       const response = await fetch('/api/vuelos');
       if (response.ok) {
         const apiData = await response.json();
-        combinedData = [...apiData, ...INITIAL_MOCK_FLIGHTS];
+        combinedData = [...apiData, ...INITIAL_MOCK_FLIGHTS, ...MOCK_PACKAGES];
+      } else {
+        combinedData = [...combinedData, ...MOCK_PACKAGES];
       }
     } catch (err) {
       console.warn('API no disponible, usando mock:', err);
+      combinedData = [...combinedData, ...MOCK_PACKAGES];
     }
 
-    const hydrated = combinedData.filter(flight => userFavIds.has(flight.id));
+    const hydrated = combinedData.filter(flight => {
+      const flightId = flight?.id;
+      return flightId && userFavIds.has(flightId);
+    });
+
     return Array.from(new Map(hydrated.map(i => [i.id, i])).values());
   }, []);
 
@@ -108,6 +137,9 @@ function UserProfile() {
       }
       if (e.key === 'isLoggedIn') setIsLoggedIn(e.newValue === 'true');
       if (e.key === 'currentUser') setUserData(JSON.parse(e.newValue || 'null'));
+      if (e.key === 'vuelafacil_bookings' && userData?.email) {
+        setUserData(prev => ({ ...prev }));
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -131,9 +163,34 @@ function UserProfile() {
     window.dispatchEvent(new Event('storage'));
   };
 
+  const handleSaveOptionalData = () => {
+    const updatedUser = {
+      ...userData,
+      address: optionalData.address,
+      phone: optionalData.phone,
+      city: optionalData.city
+    };
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    setUserData(updatedUser);
+    setEditMode(false);
+    setSaveMessage('Datos guardados correctamente.');
+    setTimeout(() => setSaveMessage(''), 3000);
+  };
+
+  const handleOptionalChange = (e) => {
+    const { name, value } = e.target;
+    setOptionalData(prev => ({ ...prev, [name]: value }));
+  };
+
   if (!isLoggedIn || !userData) return null;
 
   const { status, flights, error } = favState;
+
+  const formatDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
   return (
     <div className="profile-card">
@@ -145,9 +202,111 @@ function UserProfile() {
         <h2 className="profile-title">Mi Perfil</h2>
       </div>
 
+      {/* Datos personales básicos */}
+      <div className="profile-data-section">
+        <div className="profile-data-group">
+          <label>Nombre</label>
+          <div className="profile-data-value">{userData.firstName} {userData.lastName}</div>
+        </div>
+        <div className="profile-data-group">
+          <label>Email</label>
+          <div className="profile-data-value">{userData.email}</div>
+        </div>
+      </div>
+
+      {/* Datos opcionales */}
+      <div className="profile-optional-section">
+        <h3 className="profile-section-title">Datos adicionales (opcionales)</h3>
+        {saveMessage && <p className="profile-save-message">{saveMessage}</p>}
+        {editMode ? (
+          <div className="optional-form">
+            <div className="profile-data-group full-width">
+              <label>Dirección</label>
+              <input
+                type="text"
+                name="address"
+                value={optionalData.address}
+                onChange={handleOptionalChange}
+                className="profile-data-value profile-input"
+                placeholder="Tu dirección"
+              />
+            </div>
+            <div className="profile-data-group">
+              <label>Teléfono</label>
+              <input
+                type="tel"
+                name="phone"
+                value={optionalData.phone}
+                onChange={handleOptionalChange}
+                className="profile-data-value profile-input"
+                placeholder="Tu teléfono"
+              />
+            </div>
+            <div className="profile-data-group">
+              <label>Localidad</label>
+              <input
+                type="text"
+                name="city"
+                value={optionalData.city}
+                onChange={handleOptionalChange}
+                className="profile-data-value profile-input"
+                placeholder="Tu localidad"
+              />
+            </div>
+            <div className="profile-data-group full-width" style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleSaveOptionalData} className="profile-save-btn">Guardar</button>
+              <button onClick={() => setEditMode(false)} className="profile-cancel-btn">Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <div className="optional-display">
+            <div className="profile-data-group full-width">
+              <label>Dirección</label>
+              <div className="profile-data-value">{optionalData.address || '—'}</div>
+            </div>
+            <div className="profile-data-group">
+              <label>Teléfono</label>
+              <div className="profile-data-value">{optionalData.phone || '—'}</div>
+            </div>
+            <div className="profile-data-group">
+              <label>Localidad</label>
+              <div className="profile-data-value">{optionalData.city || '—'}</div>
+            </div>
+            <button onClick={() => setEditMode(true)} className="profile-edit-btn">Editar datos opcionales</button>
+          </div>
+        )}
+      </div>
+
+      {/* Historial de Reservas */}
+      <div className="profile-history-section">
+        <h3 className="profile-section-title">Historial de Reservas</h3>
+        {bookingHistory.length === 0 ? (
+          <p className="empty-message">Aún no has realizado ninguna reserva.</p>
+        ) : (
+          <div className="history-table">
+            {bookingHistory.map((booking, index) => (
+              <div key={index} className="history-row">
+                <div className="history-row-main">
+                  <h4>{booking.destination}</h4>
+                  <p className="history-package-desc">{booking.packageDescription}</p>
+                  <div className="history-dates">
+                    <span><strong>Reservado:</strong> {formatDate(booking.bookingDate)}</span>
+                    <span><strong>Ida:</strong> {formatDate(booking.departureDate)}</span>
+                    <span><strong>Vuelta:</strong> {formatDate(booking.returnDate)}</span>
+                  </div>
+                </div>
+                <div className="history-row-price">
+                  {booking.currency} ${booking.price?.toLocaleString('es-AR')}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sección de favoritos */}
       <div className="profile-favorites-section">
         <h3 className="favorites-title">Mis Vuelos Favoritos</h3>
-
         {status === 'loading' ? (
           <p>Cargando...</p>
         ) : status === 'error' ? (

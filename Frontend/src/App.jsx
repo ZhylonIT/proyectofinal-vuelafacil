@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import AppRoutes from './routes/AppRoutes';
 import Header from './layouts/Header';
 import Footer from './layouts/Footer';
+import WhatsAppButton from './components/common/WhatsAppButton';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         </Box>
 
         <Footer />
+        <WhatsAppButton />
       </Box>
     </BrowserRouter>  
   );

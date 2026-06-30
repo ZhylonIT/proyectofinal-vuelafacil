@@ -313,3 +313,44 @@
   fill: none;
   stroke: currentColor;
 }
+
+@media (max-width: 600px) {
+  .share-modal-overlay {
+    padding: 0.5rem;
+  }
+  .share-modal-content {
+    padding: 1.25rem;
+  }
+  .share-product-preview {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .share-preview-info {
+    align-items: center;
+  }
+  .share-confirm-btn {
+    width: 100%;
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .share-modal-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .share-networks-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .share-modal-footer {
+    flex-direction: column;
+  }
+
+  .share-cancel-btn,
+  .share-confirm-btn {
+    width: 100%;
+  }
+}

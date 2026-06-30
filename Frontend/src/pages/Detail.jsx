@@ -5,21 +5,8 @@ import AvailabilityCalendar from '../features/flights/components/AvailabilityCal
 import FlightPolicies from '../features/flights/components/FlightPolicies';
 import ShareModal from '../features/flights/components/ShareModal';
 import ReviewSection from '../features/flights/components/ReviewSection';
-import BookingConfirmationModal from '../features/flights/components/BookingConfirmationModal';
+import MOCK_PACKAGES from '../features/flights/utils/mockPackages';
 import '../styles/FlightDetail.css';
-
-const INITIAL_MOCK_FLIGHTS = [
-  { id: 'mock-1', destination: 'San Carlos de Bariloche', description: 'Disfruta de la nieve, los lagos andinos y los mejores chocolates de la Patagonia.', category: 'montaña', price: 120000, currency: 'ARS', images: ['https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=1200&auto=format&fit=crop'] },
-  { id: 'mock-2', destination: 'Río de Janeiro', description: 'Playas paradisíacas, el Cristo Redentor y una cultura vibrante todo el año.', category: 'playa', price: 380000, currency: 'ARS', images: [] },
-  { id: 'mock-3', destination: 'Madrid', description: 'Arte, cultura, gastronomía e historia en el corazón de España.', category: 'ciudad', price: 950000, currency: 'ARS', images: [] },
-  { id: 'mock-4', destination: 'Cancún', description: 'Aguas turquesas, arena blanca y la mística de la cultura Maya.', category: 'playa', price: 520000, currency: 'ARS', images: [] },
-  { id: 'mock-5', destination: 'Mendoza', description: 'Recorridos por las mejores bodegas al pie de la imponente cordillera.', category: 'montaña', price: 140000, currency: 'ARS', images: [] },
-  { id: 'mock-6', destination: 'Nueva York', description: 'La ciudad que nunca duerme: rascacielos imponentes, Broadway y Central Park.', category: 'ciudad', price: 890000, currency: 'ARS', images: [] },
-  { id: 'mock-7', destination: 'Ushuaia', description: 'Explorá el Fin del Mundo con sus glaciares majestuosos y paisajes de película.', category: 'montaña', price: 160000, currency: 'ARS', images: [] },
-  { id: 'mock-8', destination: 'Miami', description: 'Compras, playas de diseño vanguardista y una vida nocturna inigualable.', category: 'playa', price: 720000, currency: 'ARS', images: [] },
-  { id: 'mock-9', destination: 'Roma', description: 'Un viaje al pasado a través del Coliseo, el Vaticano y la gastronomía italiana.', category: 'ciudad', price: 980000, currency: 'ARS', images: [] },
-  { id: 'mock-10', destination: 'Cataratas del Iguazú', description: 'Siente la fuerza indomable de una de las maravillas naturales del mundo.', category: 'naturaleza', price: 110000, currency: 'ARS', images: [] }
-];
 
 function Detail() {
   const { id } = useParams();
@@ -27,8 +14,6 @@ function Detail() {
   const [flight, setFlight] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [bookingModal, setBookingModal] = useState(false);
-  const [bookingDates, setBookingDates] = useState({ departure: null, return: null });
 
   useEffect(() => {
     const fetchFlightDetail = async () => {
@@ -38,20 +23,17 @@ function Detail() {
         if (response.ok) {
           const data = await response.json();
           setFlight(data);
-        } else {
-          const fallback = INITIAL_MOCK_FLIGHTS.find(f => String(f.id) === String(id));
-          setFlight(fallback || null);
+          return;
         }
-      } catch (error) {
-        console.warn(`Servidor OFF - Extrayendo detalle desde almacenamiento local. Motivo: ${error.message}`);
-        const fallback = INITIAL_MOCK_FLIGHTS.find(f => String(f.id) === String(id));
-        setFlight(fallback || null);
-      } finally {
-        setLoading(false);
+      } catch {
+        console.warn('Servidor no disponible, buscando en datos locales...');
       }
+
+      const foundMock = MOCK_PACKAGES.find(pkg => String(pkg.id) === String(id));
+      setFlight(foundMock || null);
     };
 
-    fetchFlightDetail();
+    fetchFlightDetail().finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -68,6 +50,7 @@ function Detail() {
 
   const destinationData = useMemo(() => {
     if (!flight || !flight.destination) return { chars: [], description: '' };
+
     const globalCharsRaw = localStorage.getItem('vuelafacil_characteristics');
     const globalChars = globalCharsRaw ? JSON.parse(globalCharsRaw) : [
       { id: 'char-1', name: 'Apto Familia', icon: '👨‍👩‍👧‍👦' },
@@ -96,8 +79,14 @@ function Detail() {
   }, [flight]);
 
   const handleBooking = (departure, returnDate) => {
-    setBookingDates({ departure, return: returnDate });
-    setBookingModal(true);
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    // Redirigir a /reserva con el destino en lugar de un ID específico
+    const bookingUrl = `/reserva?destination=${encodeURIComponent(flight.destination)}&departure=${departure}&return=${returnDate}`;
+    if (!isLoggedIn) {
+      navigate(`/login?redirect=${encodeURIComponent(bookingUrl)}`);
+    } else {
+      navigate(bookingUrl);
+    }
   };
 
   if (loading) {
@@ -148,7 +137,7 @@ function Detail() {
           <span className="detail-badge">{flight.category}</span>
 
           <p className="detail-description" style={{ marginBottom: '1.5rem' }}>
-            <strong>Sobre el paquete:</strong> {flight.description || flight.descripcion}
+            <strong>Sobre el paquete:</strong> {flight.description}
           </p>
 
           <div className="detail-pricing">
@@ -208,15 +197,6 @@ function Detail() {
         <ShareModal 
           flight={flight}
           onClose={() => setIsShareOpen(false)}
-        />
-      )}
-
-      {bookingModal && (
-        <BookingConfirmationModal
-          flight={flight}
-          departureDate={bookingDates.departure}
-          returnDate={bookingDates.return}
-          onClose={() => setBookingModal(false)}
         />
       )}
     </main>
