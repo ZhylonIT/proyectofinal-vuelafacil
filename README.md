@@ -150,9 +150,7 @@ Todos los endpoints están bajo el prefijo `/api/vuelos`.
 ---
 
 ## 🗂 Diagrama de Base de Datos
-
-![Diagrama de Base de Datos](./docs/db-diagram.png)
-
+https://ibb.co/hR7Pzj9F
 El modelo consta de dos tablas relacionadas en una relación **uno a muchos** (`FLIGHTS` → `FLIGHT_IMAGES`):
 
 | Tabla | Campo | Tipo | Detalle |
@@ -167,11 +165,7 @@ El modelo consta de dos tablas relacionadas en una relación **uno a muchos** (`
 | **FLIGHT_IMAGES** | `flight_id` | `bigint` | Clave foránea → `FLIGHTS.id` |
 | | `image_url` | `varchar(255)` | URL o Base64 de la imagen |
 
-### DIAGRAMA DE BASE DE DATOS
-https://ibb.co/hR7Pzj9F
-
 ---
-
 ## ✅ Testing
 
 ### Backend
