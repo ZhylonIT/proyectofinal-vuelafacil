@@ -130,7 +130,7 @@ export default defineConfig({
   },
 });
 
----
+``` 
 
 ## 🔌 Endpoints de la API
 
