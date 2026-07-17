@@ -1,42 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isDateRangeAvailable } from '../utils/availabilityUtils';
-import MOCK_PACKAGES from '../utils/mockPackages';
+import { useAuth } from '../../../context/AuthContext';
+import { flightService } from '../../../services/flightService';
+import { favoritoService } from '../../../services/favoritoService';
+import { resenaService } from '../../../services/resenaService';
 import '../../../styles/FlightRecommendations.css';
 
 function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, activeCharacteristics }) {
+  const { isAuthenticated } = useAuth();
   const [realFlights, setRealFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [prevCategory, setPrevCategory] = useState(activeCategory);
   const [prevSearchCriteria, setPrevSearchCriteria] = useState(searchCriteria);
-
-  const [userSession] = useState(() => {
-    try {
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-      if (isLoggedIn && currentUser && currentUser.email) {
-        return { isLoggedIn: true, email: currentUser.email };
-      }
-    } catch (error) {
-      console.error("Error parseando la sesión de usuario en recomendaciones:", error);
-    }
-    return { isLoggedIn: false, email: null };
-  });
-
-  const [favorites, setFavorites] = useState(() => {
-    try {
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-      if (isLoggedIn && currentUser && currentUser.email) {
-        const allFavorites = JSON.parse(localStorage.getItem('vuelafacil_favorites') || '{}');
-        return new Set(allFavorites[currentUser.email] || []);
-      }
-    } catch (error) {
-      console.error("Error parseando favoritos en recomendaciones:", error);
-    }
-    return new Set();
-  });
+  const [favorites, setFavorites] = useState(new Set());
+  const [reviewsMap, setReviewsMap] = useState({});
 
   if (activeCategory !== prevCategory || searchCriteria !== prevSearchCriteria) {
     setPrevCategory(activeCategory);
@@ -50,15 +28,10 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     const fetchFlights = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/vuelos');
-        if (response.ok) {
-          const data = await response.json();
-          setRealFlights(Array.isArray(data) ? data : []);
-        } else {
-          setRealFlights([]);
-        }
+        const data = await flightService.obtenerTodos();
+        setRealFlights(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Error consumiendo la API de vuelos:", error);
+        console.error('Error consumiendo la API de vuelos:', error);
         setRealFlights([]);
       } finally {
         setLoading(false);
@@ -68,82 +41,45 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     fetchFlights();
   }, []);
 
-  const toggleFavorite = useCallback((e, flightId) => {
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    favoritoService.misFavoritos()
+      .then(favs => setFavorites(new Set(favs.map(f => f.flightId))))
+      .catch(err => console.error('Error cargando favoritos:', err));
+  }, [isAuthenticated]);
+
+  const toggleFavorite = useCallback(async (e, flightId) => {
     e.stopPropagation();
+    if (!isAuthenticated) return;
 
-    if (!userSession.isLoggedIn || !userSession.email) return;
-
-    setFavorites(prevFavorites => {
-      const newFavorites = new Set(prevFavorites);
-      if (newFavorites.has(flightId)) {
-        newFavorites.delete(flightId);
-      } else {
-        newFavorites.add(flightId);
-      }
-
-      try {
-        const allFavorites = JSON.parse(localStorage.getItem('vuelafacil_favorites') || '{}');
-        allFavorites[userSession.email] = Array.from(newFavorites);
-        localStorage.setItem('vuelafacil_favorites', JSON.stringify(allFavorites));
-      } catch (error) {
-        console.error("Error persistiendo favoritos en almacenamiento local:", error);
-      }
-
-      return newFavorites;
-    });
-  }, [userSession]);
-
-  const reviewsMap = useMemo(() => {
+    const yaEsFavorito = favorites.has(flightId);
     try {
-      const allReviews = JSON.parse(localStorage.getItem('vuelafacil_reviews') || '{}');
-      const map = {};
-      Object.keys(allReviews).forEach(productId => {
-        const productReviews = allReviews[productId];
-        if (Array.isArray(productReviews) && productReviews.length > 0) {
-          const sum = productReviews.reduce((acc, r) => acc + (r.rating || 0), 0);
-          map[productId] = {
-            average: (sum / productReviews.length).toFixed(1),
-            total: productReviews.length
-          };
-        }
+      if (yaEsFavorito) {
+        await favoritoService.quitar(flightId);
+      } else {
+        await favoritoService.agregar(flightId);
+      }
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (yaEsFavorito) next.delete(flightId); else next.add(flightId);
+        return next;
       });
-      return map;
     } catch (error) {
-      console.error("Error parseando valoraciones en recomendaciones:", error);
-      return {};
+      console.error('Error actualizando favorito:', error);
     }
-  }, []);
+  }, [isAuthenticated, favorites]);
 
   const processedFlights = useMemo(() => {
     let details = {};
     try {
       details = JSON.parse(localStorage.getItem('vuelafacil_destination_details') || '{}');
     } catch (error) {
-      console.error("Error parseando detalles de destino en recomendaciones:", error);
+      console.error('Error parseando detalles de destino en recomendaciones:', error);
     }
 
-    const baseItems = (() => {
-      if (searchCriteria && searchCriteria.destination) {
-        const query = searchCriteria.destination.trim().toLowerCase();
-        const matchedMock = MOCK_PACKAGES.filter(pkg =>
-          pkg.destination?.toLowerCase().includes(query)
-        );
-        const matchedReal = realFlights.filter(flight =>
-          flight?.destination?.toLowerCase().includes(query)
-        );
-        const realDestinations = new Set(matchedReal.map(f => f.destination?.toLowerCase()));
-        const filteredMock = matchedMock.filter(pkg => !realDestinations.has(pkg.destination?.toLowerCase()));
-        return [...matchedReal, ...filteredMock];
-      } else {
-        const uniqueDestinations = [...new Set(MOCK_PACKAGES.map(p => p.destination))];
-        const HOME_MOCK = uniqueDestinations.map(dest =>
-          MOCK_PACKAGES.find(p => p.destination === dest)
-        ).filter(Boolean);
-        const realDestinations = new Set(realFlights.map(f => f.destination?.toLowerCase()).filter(Boolean));
-        const filteredHomeMock = HOME_MOCK.filter(pkg => !realDestinations.has(pkg.destination?.toLowerCase()));
-        return [...realFlights, ...filteredHomeMock];
-      }
-    })();
+    const baseItems = (searchCriteria && searchCriteria.destination)
+      ? realFlights.filter(flight => flight?.destination?.toLowerCase().includes(searchCriteria.destination.trim().toLowerCase()))
+      : realFlights;
 
     const afterCategoryFilter = (!searchCriteria && activeCategory !== 'todos')
       ? baseItems.filter(item => item?.category?.toLowerCase() === activeCategory.toLowerCase())
@@ -156,11 +92,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
         })
       : afterCategoryFilter;
 
-    const afterDateFilter = (searchCriteria?.departureDate && searchCriteria?.returnDate)
-      ? afterCharFilter.filter(item => isDateRangeAvailable(item.destination, searchCriteria.departureDate, searchCriteria.returnDate))
-      : afterCharFilter;
-
-    return afterDateFilter;
+    return afterCharFilter;
   }, [realFlights, activeCategory, searchCriteria, activeCharacteristics]);
 
   const paginatedItems = useMemo(() => {
@@ -173,6 +105,25 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
       reviewData: reviewsMap[item.id] || { average: '0.0', total: 0 }
     }));
   }, [processedFlights, searchCriteria, currentPage, reviewsMap]);
+
+  useEffect(() => {
+    const ids = paginatedItems.map(item => item.id).filter(id => !(id in reviewsMap));
+    if (ids.length === 0) return;
+
+    Promise.all(ids.map(id => resenaService.listarPorVuelo(id).then(data => [id, data]).catch(() => [id, null])))
+      .then(results => {
+        setReviewsMap(prev => {
+          const next = { ...prev };
+          results.forEach(([id, data]) => {
+            if (data) {
+              next[id] = { average: data.promedio.toFixed(1), total: data.cantidad };
+            }
+          });
+          return next;
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedItems]);
 
   const totalItems = processedFlights.length;
   const totalPages = Math.ceil(totalItems / 10);
@@ -225,7 +176,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
 
                   <span className="flight-category-badge">{capitalize(item.category)}</span>
 
-                  {userSession.isLoggedIn && (
+                  {isAuthenticated && (
                     <button
                       className={`favorite-btn ${favorites.has(item.id) ? 'active' : ''}`}
                       onClick={(e) => toggleFavorite(e, item.id)}

@@ -4,10 +4,12 @@ import AppRoutes from './routes/AppRoutes';
 import Header from './layouts/Header';
 import Footer from './layouts/Footer';
 import WhatsAppButton from './components/common/WhatsAppButton';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
         <Header />
         
@@ -29,7 +31,8 @@ function App() {
         <Footer />
         <WhatsAppButton />
       </Box>
-    </BrowserRouter>  
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -1,51 +1,54 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import { resenaService } from '../../../services/resenaService';
 import '../../../styles/ReviewSection.css'
 
 function ReviewSection({ productId, destination }) {
-  const [auth] = useState(() => ({
-    isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
-    user: JSON.parse(localStorage.getItem('currentUser') || 'null')
-  }));
+  const { isAuthenticated } = useAuth();
 
-  const [reviews, setReviews] = useState(() => {
-    try {
-      const allReviews = JSON.parse(localStorage.getItem('vuelafacil_reviews') || '{}');
-      return allReviews[productId] || [];
-    } catch {
-      return [];
-    }
-  });
+  const [reviews, setReviews] = useState([]);
+  const [average, setAverage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const { average, total } = useMemo(() => {
-    if (!reviews.length) return { average: 0, total: 0 };
-    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-    return {
-      average: (sum / reviews.length).toFixed(1),
-      total: reviews.length
-    };
-  }, [reviews]);
 
-  const persistReviews = useCallback((newReviews) => {
-    try {
-      const allReviews = JSON.parse(localStorage.getItem('vuelafacil_reviews') || '{}');
-      allReviews[productId] = newReviews;
-      localStorage.setItem('vuelafacil_reviews', JSON.stringify(allReviews));
-    } catch (e) {
-      console.warn('Error al guardar reseñas en localStorage', e);
-    }
+  const cargarResenas = useCallback(() => {
+    setLoading(true);
+    resenaService.listarPorVuelo(productId)
+      .then(data => {
+        setReviews(data.resenas || []);
+        setAverage((data.promedio || 0).toFixed(1));
+        setTotal(data.cantidad || 0);
+      })
+      .catch(() => {
+        setReviews([]);
+        setAverage(0);
+        setTotal(0);
+      })
+      .finally(() => setLoading(false));
   }, [productId]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    // cargarResenas es async y solo actualiza estado luego del await; se reutiliza también al publicar una reseña.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargarResenas();
+  }, [cargarResenas]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (userRating === 0) {
       setSubmitError('Seleccioná una puntuación con estrellas.');
       return;
     }
-    if (!auth.isLoggedIn || !auth.user) {
+    if (!userComment.trim()) {
+      setSubmitError('Escribí un comentario para publicar tu valoración.');
+      return;
+    }
+    if (!isAuthenticated) {
       setSubmitError('Debés iniciar sesión para dejar una valoración.');
       return;
     }
@@ -53,21 +56,16 @@ function ReviewSection({ productId, destination }) {
     setIsSubmitting(true);
     setSubmitError('');
 
-    const newReview = {
-      id: `rev-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      userId: auth.user.id,
-      userName: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
-      rating: userRating,
-      comment: userComment.trim(),
-      date: new Date().toISOString()
-    };
-
-    const updatedReviews = [newReview, ...reviews];
-    setReviews(updatedReviews);
-    persistReviews(updatedReviews);
-    setUserRating(0);
-    setUserComment('');
-    setIsSubmitting(false);
+    try {
+      await resenaService.crear(productId, { rating: userRating, comentario: userComment.trim() });
+      setUserRating(0);
+      setUserComment('');
+      cargarResenas();
+    } catch (error) {
+      setSubmitError(error.message || 'No pudimos publicar tu valoración. Intentá nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStars = (rating, interactive = false) => {
@@ -98,7 +96,6 @@ function ReviewSection({ productId, destination }) {
     <section className="review-section" aria-labelledby="review-heading">
       <h2 id="review-heading" className="review-section-title">Valoraciones de {destination}</h2>
 
-      {/* Resumen de puntuación media */}
       <div className="review-summary">
         <div className="review-average">
           <span className="review-average-number">{average}</span>
@@ -107,8 +104,7 @@ function ReviewSection({ productId, destination }) {
         </div>
       </div>
 
-      {/* Formulario de puntuación */}
-      {auth.isLoggedIn ? (
+      {isAuthenticated ? (
         <form className="review-form" onSubmit={handleSubmit}>
           <h3 className="review-form-title">Dejá tu opinión</h3>
           <div className="review-form-stars">
@@ -117,7 +113,7 @@ function ReviewSection({ productId, destination }) {
           </div>
           <textarea
             className="review-comment-input"
-            placeholder="Compartí tu experiencia (opcional)..."
+            placeholder="Compartí tu experiencia..."
             value={userComment}
             onChange={(e) => setUserComment(e.target.value)}
             rows={3}
@@ -135,19 +131,20 @@ function ReviewSection({ productId, destination }) {
         </p>
       )}
 
-      {/* Listado de reseñas */}
       <div className="review-list">
-        {reviews.length === 0 ? (
+        {loading ? (
+          <p className="review-empty">Cargando valoraciones...</p>
+        ) : reviews.length === 0 ? (
           <p className="review-empty">Este destino aún no tiene valoraciones. ¡Sé el primero en opinar!</p>
         ) : (
           reviews.map((rev) => (
             <article key={rev.id} className="review-card">
               <div className="review-card-header">
-                <span className="review-user-name">{rev.userName}</span>
-                <span className="review-date">{formatDate(rev.date)}</span>
+                <span className="review-user-name">{rev.nombreUsuario}</span>
+                <span className="review-date">{formatDate(rev.fecha)}</span>
               </div>
               <div className="review-card-stars">{renderStars(rev.rating)}</div>
-              {rev.comment && <p className="review-card-comment">{rev.comment}</p>}
+              {rev.comentario && <p className="review-card-comment">{rev.comentario}</p>}
             </article>
           ))
         )}

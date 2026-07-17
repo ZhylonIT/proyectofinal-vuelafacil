@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import '../../../styles/Register.css';
 
 function RegisterForm() {
   const navigate = useNavigate();
-  
+  const { register } = useAuth();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -13,6 +15,7 @@ function RegisterForm() {
   });
 
   const [errors, setErrors] = useState({});
+  const [globalError, setGlobalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -64,9 +67,10 @@ function RegisterForm() {
     return localErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setGlobalError('');
 
     const validationErrors = validateForm();
 
@@ -76,23 +80,24 @@ function RegisterForm() {
       return;
     }
 
-    // Se asigna el rol base 'user' a las nuevas cuentas
-    const newUser = {
-      ...formData,
-      role: 'user', 
-      id: `usr-${Date.now()}`
-    };
+    try {
+      await register({
+        nombre: formData.firstName.trim(),
+        apellido: formData.lastName.trim(),
+        email: formData.email.trim(),
+        password: formData.password
+      });
 
-    localStorage.setItem('registeredUser', JSON.stringify(newUser));
-
-    setTimeout(() => {
       setIsSubmitting(false);
       setSubmitSuccess(true);
-      
+
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    }, 1200);
+    } catch (error) {
+      setGlobalError(error.message || 'No pudimos crear tu cuenta. Intentá nuevamente.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -112,6 +117,11 @@ function RegisterForm() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="register-form">
+          {globalError && (
+            <div className="login-error-alert" role="alert">
+              <span>{globalError}</span>
+            </div>
+          )}
           <div className="register-form-row">
             <div className="register-form-group">
               <label htmlFor="firstName">Nombre *</label>

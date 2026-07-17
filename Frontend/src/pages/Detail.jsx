@@ -5,12 +5,14 @@ import AvailabilityCalendar from '../features/flights/components/AvailabilityCal
 import FlightPolicies from '../features/flights/components/FlightPolicies';
 import ShareModal from '../features/flights/components/ShareModal';
 import ReviewSection from '../features/flights/components/ReviewSection';
-import MOCK_PACKAGES from '../features/flights/utils/mockPackages';
+import { flightService } from '../services/flightService';
+import { useAuth } from '../context/AuthContext';
 import '../styles/FlightDetail.css';
 
 function Detail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [flight, setFlight] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -19,21 +21,17 @@ function Detail() {
     const fetchFlightDetail = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/vuelos/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setFlight(data);
-          return;
-        }
-      } catch {
-        console.warn('Servidor no disponible, buscando en datos locales...');
+        const data = await flightService.obtenerPorId(id);
+        setFlight(data);
+      } catch (error) {
+        console.warn('No se pudo obtener el vuelo:', error);
+        setFlight(null);
+      } finally {
+        setLoading(false);
       }
-
-      const foundMock = MOCK_PACKAGES.find(pkg => String(pkg.id) === String(id));
-      setFlight(foundMock || null);
     };
 
-    fetchFlightDetail().finally(() => setLoading(false));
+    fetchFlightDetail();
   }, [id]);
 
   useEffect(() => {
@@ -79,10 +77,9 @@ function Detail() {
   }, [flight]);
 
   const handleBooking = (departure, returnDate) => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     // Redirigir a /reserva con el destino en lugar de un ID específico
     const bookingUrl = `/reserva?destination=${encodeURIComponent(flight.destination)}&departure=${departure}&return=${returnDate}`;
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(bookingUrl)}`);
     } else {
       navigate(bookingUrl);

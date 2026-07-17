@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flightService } from '../../../services/flightService';
 import '../../../styles/AdminPanel.css';
 
 function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, onSuccess }) {
@@ -79,43 +80,16 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
 
     try {
       setIsSubmitting(true);
-      
+
       if (flightToEdit) {
-        if (String(flightToEdit.id).startsWith('mock-')) {
-          onSuccess(payload, flightToEdit.id);
-          return;
-        }
-
-        const response = await fetch(`/api/vuelos/${flightToEdit.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al actualizar el vuelo en el servidor. Verifique los datos.');
-        }
-        
-        onSuccess();
+        await flightService.actualizar(flightToEdit.id, payload);
       } else {
-        // Modo Alta / Creación
-        const response = await fetch('/api/vuelos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          if (response.status === 400 || response.status === 500) {
-            throw new Error('El nombre de este vuelo ya existe, por favor elija otro o revise los datos.');
-          }
-          throw new Error('Error al crear el vuelo. Intente nuevamente.');
-        }
-
-        onSuccess();
+        await flightService.crear(payload);
       }
+
+      onSuccess();
     } catch (error) {
-      setErrorBackend(error.message);
+      setErrorBackend(error.message || 'Error al guardar el vuelo. Intente nuevamente.');
     } finally {
       setIsSubmitting(false);
     }

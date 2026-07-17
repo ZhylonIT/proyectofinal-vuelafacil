@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReviewSection from '../features/flights/components/ReviewSection';
-import MOCK_PACKAGES from '../features/flights/utils/mockPackages';
-import { isDateRangeAvailable } from '../features/flights/utils/availabilityUtils';
+import { flightService } from '../services/flightService';
+import { reservaService } from '../services/reservaService';
+import { useAuth } from '../context/AuthContext';
 import '../styles/Booking.css';
 
 function Booking() {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const destination = searchParams.get('destination');
   const departureDate = searchParams.get('departure');
@@ -16,70 +18,31 @@ function Booking() {
   const [loading, setLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingError, setBookingError] = useState('');
-
-  // Simulación de envío de correo
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailData, setEmailData] = useState(null);
-
-  const [currentUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('currentUser') || 'null');
-    } catch {
-      return null;
-    }
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       const currentUrl = `/reserva?destination=${encodeURIComponent(destination || '')}&departure=${departureDate || ''}&return=${returnDate || ''}`;
       navigate(`/login?redirect=${encodeURIComponent(currentUrl)}`);
     }
-  }, [destination, departureDate, returnDate, navigate]);
+  }, [isAuthenticated, destination, departureDate, returnDate, navigate]);
 
   useEffect(() => {
-    if (!destination) {
-      return;
-    }
+    if (!destination) return;
 
     const fetchPackages = async () => {
       setLoading(true);
       setBookingError('');
       try {
-        let realFlights = [];
-        try {
-          const response = await fetch('/api/vuelos');
-          if (response.ok) {
-            const data = await response.json();
-            realFlights = Array.isArray(data) ? data : [];
-          }
-        } catch {
-          console.warn('API no disponible, usando solo datos locales');
-        }
-
+        const realFlights = await flightService.obtenerTodos();
         const query = destination.trim().toLowerCase();
-        const matchedMock = MOCK_PACKAGES.filter(pkg =>
-          pkg.destination?.toLowerCase().includes(query)
-        );
-        const matchedReal = realFlights.filter(flight =>
-          flight?.destination?.toLowerCase().includes(query)
-        );
+        const matched = realFlights.filter(flight => flight?.destination?.toLowerCase().includes(query));
 
-        const realDestinations = new Set(matchedReal.map(f => f.destination?.toLowerCase()));
-        const filteredMock = matchedMock.filter(pkg => !realDestinations.has(pkg.destination?.toLowerCase()));
-        let allPackages = [...matchedReal, ...filteredMock];
-
-        if (departureDate && returnDate) {
-          allPackages = allPackages.filter(pkg =>
-            isDateRangeAvailable(pkg.destination, departureDate, returnDate)
-          );
+        if (matched.length === 0) {
+          setBookingError('No se encontraron paquetes disponibles para el destino seleccionado.');
         }
 
-        if (allPackages.length === 0) {
-          setBookingError('No se encontraron paquetes disponibles para las fechas seleccionadas. Intentá con otras fechas o destino.');
-        }
-
-        setPackages(allPackages);
+        setPackages(matched);
       } catch {
         setBookingError('Ocurrió un error al cargar los paquetes. Verificá tu conexión e intentá de nuevo.');
         setPackages([]);
@@ -89,7 +52,7 @@ function Booking() {
     };
 
     fetchPackages();
-  }, [destination, departureDate, returnDate]);
+  }, [destination]);
 
   const formatDate = (isoString) => {
     if (!isoString) return '';
@@ -97,76 +60,31 @@ function Booking() {
     return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const formatDateTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    return date.toLocaleDateString('es-AR', { 
-      day: 'numeric', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
-
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg);
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (!selectedPackage) {
       setBookingError('Debés seleccionar un paquete antes de confirmar.');
       return;
     }
 
-    if (Math.random() < 0.1) {
-      setBookingError('Error al procesar la reserva: conflicto de disponibilidad. Por favor, intentá con otras fechas o seleccioná otro paquete.');
-      return;
-    }
-
-    // Guardar en historial
-    const bookingDateTime = new Date().toISOString();
-    if (currentUser?.email) {
-      const allBookings = JSON.parse(localStorage.getItem('vuelafacil_bookings') || '{}');
-      const userBookings = allBookings[currentUser.email] || [];
-      userBookings.push({
-        destination: selectedPackage.destination,
-        packageDescription: selectedPackage.description,
-        price: selectedPackage.price,
-        currency: selectedPackage.currency,
-        departureDate,
-        returnDate,
-        bookingDate: bookingDateTime
-      });
-      allBookings[currentUser.email] = userBookings;
-      localStorage.setItem('vuelafacil_bookings', JSON.stringify(allBookings));
-    }
-
-    const emailContent = {
-      to: currentUser?.email || 'usuario@vuelafacil.com',
-      subject: `Confirmación de reserva - ${selectedPackage.destination}`,
-      bookingDate: bookingDateTime,
-      destination: selectedPackage.destination,
-      packageDescription: selectedPackage.description,
-      price: selectedPackage.price,
-      currency: selectedPackage.currency,
-      departureDate,
-      returnDate,
-      userName: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Usuario',
-      contactInfo: 'VuelaFácil - Atención al cliente: +54 11 2345-6789 - info@vuelafacil.com'
-    };
-
-    setBookingConfirmed(true);
+    setIsSubmitting(true);
     setBookingError('');
-    
-    setTimeout(() => {
-      setEmailData(emailContent);
-      setEmailSent(true);
-      
-      const sentEmails = JSON.parse(localStorage.getItem('vuelafacil_emails_sent') || '[]');
-      sentEmails.push({
-        ...emailContent,
-        sentAt: new Date().toISOString()
+
+    try {
+      await reservaService.crear({
+        flightId: selectedPackage.id,
+        fechaIda: departureDate,
+        fechaVuelta: returnDate || null,
       });
-      localStorage.setItem('vuelafacil_emails_sent', JSON.stringify(sentEmails));
-    }, 1500);
+      setBookingConfirmed(true);
+    } catch (error) {
+      setBookingError(error.message || 'No pudimos confirmar tu reserva. Intentá nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -208,7 +126,7 @@ function Booking() {
         )}
 
         {packages.length === 0 && !bookingError ? (
-          <p className="booking-error">No hay paquetes disponibles para {destination} en las fechas seleccionadas.</p>
+          <p className="booking-error">No hay paquetes disponibles para {destination}.</p>
         ) : !selectedPackage ? (
           <>
             <h2 className="booking-subtitle">Seleccioná un paquete:</h2>
@@ -231,14 +149,11 @@ function Booking() {
           <div className="booking-summary">
             <h2 className="booking-subtitle">Confirmar reserva</h2>
 
-            {currentUser && (
+            {user && (
               <div className="booking-user-info">
                 <h3 className="booking-subtitle">Tus datos</h3>
-                <p><strong>Nombre:</strong> {currentUser.firstName} {currentUser.lastName}</p>
-                <p><strong>Email:</strong> {currentUser.email}</p>
-                {currentUser.address && <p><strong>Dirección:</strong> {currentUser.address}</p>}
-                {currentUser.phone && <p><strong>Teléfono:</strong> {currentUser.phone}</p>}
-                {currentUser.city && <p><strong>Localidad:</strong> {currentUser.city}</p>}
+                <p><strong>Nombre:</strong> {user.firstName} {user.lastName}</p>
+                <p><strong>Email:</strong> {user.email}</p>
                 <button
                   className="booking-back-btn"
                   onClick={() => navigate('/perfil')}
@@ -254,18 +169,20 @@ function Booking() {
             <button
               className="booking-confirm-btn"
               onClick={handleConfirmBooking}
+              disabled={isSubmitting}
             >
-              Confirmar reserva
+              {isSubmitting ? 'Confirmando...' : 'Confirmar reserva'}
             </button>
             <button
               className="booking-back-btn"
               onClick={() => setSelectedPackage(null)}
               style={{ marginTop: '0.5rem' }}
+              disabled={isSubmitting}
             >
               Cambiar paquete
             </button>
           </div>
-        ) : !emailSent ? (
+        ) : (
           <div className="booking-success-section">
             <div className="booking-success-header">
               <span className="booking-success-icon">✅</span>
@@ -276,49 +193,13 @@ function Booking() {
                 Paquete: {selectedPackage.description}
                 <br />
                 Fecha de ida: {formatDate(departureDate)}
-                <br />
-                Fecha de vuelta: {formatDate(returnDate)}
+                {returnDate && (
+                  <>
+                    <br />
+                    Fecha de vuelta: {formatDate(returnDate)}
+                  </>
+                )}
               </p>
-              <div className="email-sending-indicator">
-                <div className="spinner-small"></div>
-                <p>Enviando confirmación por correo electrónico...</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="booking-success-section">
-            <div className="booking-success-header">
-              <span className="booking-success-icon">📧</span>
-              <h2 className="booking-success-title">¡Correo enviado!</h2>
-              <p className="booking-success-details">
-                Se envió un correo electrónico a <strong>{emailData?.to}</strong> con todos los detalles de tu reserva.
-              </p>
-            </div>
-
-            {/* Vista previa del correo enviado */}
-            <div className="email-preview">
-              <div className="email-preview-header">
-                <h3>📨 Vista previa del correo enviado</h3>
-              </div>
-              <div className="email-preview-content">
-                <p><strong>Para:</strong> {emailData?.to}</p>
-                <p><strong>Asunto:</strong> {emailData?.subject}</p>
-                <hr />
-                <p>Hola <strong>{emailData?.userName}</strong>,</p>
-                <p>Tu reserva ha sido confirmada exitosamente. A continuación, los detalles:</p>
-                
-                <div className="email-booking-details">
-                  <p><strong>Destino:</strong> {emailData?.destination}</p>
-                  <p><strong>Paquete:</strong> {emailData?.packageDescription}</p>
-                  <p><strong>Precio:</strong> {emailData?.currency} ${emailData?.price?.toLocaleString('es-AR')}</p>
-                  <p><strong>Fecha de ida:</strong> {formatDate(emailData?.departureDate)}</p>
-                  <p><strong>Fecha de vuelta:</strong> {formatDate(emailData?.returnDate)}</p>
-                  <p><strong>Fecha de reserva:</strong> {formatDateTime(emailData?.bookingDate)}</p>
-                </div>
-
-                <hr />
-                <p className="email-contact-info">{emailData?.contactInfo}</p>
-              </div>
             </div>
 
             <div className="booking-review-wrapper">

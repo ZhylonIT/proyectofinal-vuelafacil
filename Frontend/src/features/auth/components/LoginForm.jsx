@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import '../../../styles/Login.css';
 
 function LoginForm({ redirectUrl }) {
   const navigate = useNavigate();
-  
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -48,7 +50,7 @@ function LoginForm({ redirectUrl }) {
     return localErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setGlobalError('');
@@ -60,49 +62,20 @@ function LoginForm({ redirectUrl }) {
       return;
     }
 
-    const registeredUserStr = localStorage.getItem('registeredUser');    
-    const registeredUser = registeredUserStr ? { role: 'user', ...JSON.parse(registeredUserStr) } : null;
+    try {
+      const usuario = await login(formData.email.trim(), formData.password);
 
-    const mockAdmin = {
-      id: 'admin-001',
-      firstName: 'Admin',
-      lastName: 'Vuela Fácil',
-      email: 'admin@vuelafacil.com',
-      password: 'admin',
-      role: 'admin'
-    };
-
-    setTimeout(() => {
-      let matchedUser = null;
-
-      if (registeredUser && formData.email.toLowerCase() === registeredUser.email.toLowerCase() && formData.password === registeredUser.password) {
-        matchedUser = registeredUser;
-      } else if (formData.email.toLowerCase() === mockAdmin.email && formData.password === mockAdmin.password) {
-        matchedUser = mockAdmin;
-      }
-
-      if (matchedUser) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('currentUser', JSON.stringify({
-          id: matchedUser.id,
-          firstName: matchedUser.firstName,
-          lastName: matchedUser.lastName,
-          email: matchedUser.email,
-          role: matchedUser.role 
-        }));
-
-        if (redirectUrl) {
-          navigate(redirectUrl);
-        } else if (matchedUser.role === 'admin') {
-          navigate('/administracion');
-        } else {
-          navigate('/');
-        }
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else if (usuario.role === 'admin') {
+        navigate('/administracion');
       } else {
-        setGlobalError('El correo electrónico o la contraseña son incorrectos. Por favor, intente de nuevo.');
-        setIsSubmitting(false);
+        navigate('/');
       }
-    }, 1000);
+    } catch (error) {
+      setGlobalError(error.message || 'El correo electrónico o la contraseña son incorrectos. Por favor, intente de nuevo.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
