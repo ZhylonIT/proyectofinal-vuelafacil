@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +59,7 @@ class FlightControllerTest {
 
     @Test
     @DisplayName("TC-04: POST /api/vuelos con payload válido retorna 201 y persiste en base de datos")
+    @WithMockUser(roles = "ADMIN")
     void TC04_postVuelo_payloadValido_retorna201YPersiste() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(flightValido);
 
@@ -78,6 +80,7 @@ class FlightControllerTest {
 
     @Test
     @DisplayName("TC-05: POST /api/vuelos con nombre duplicado retorna error y no crea duplicado en DB")
+    @WithMockUser(roles = "ADMIN")
     void TC05_postVuelo_nombreDuplicado_retornaErrorYNoDuplica() throws Exception {
         flightRepository.save(flightValido);
 
@@ -102,6 +105,7 @@ class FlightControllerTest {
 
     @Test
     @DisplayName("TC-06: POST /api/vuelos sin campo 'name' retorna 400 Bad Request")
+    @WithMockUser(roles = "ADMIN")
     void TC06_postVuelo_sinCampoName_retorna400() throws Exception {
         Flight vueloSinNombre = new Flight(
                 null,
@@ -124,6 +128,7 @@ class FlightControllerTest {
 
     @Test
     @DisplayName("TC-11: DELETE /api/vuelos/{id} con ID existente retorna 204 y elimina de DB e imágenes")
+    @WithMockUser(roles = "ADMIN")
     void TC11_deleteVuelo_idExistente_retorna204YEliminaDeDB() throws Exception {
         Flight vueloGuardado = flightRepository.save(flightValido);
         Long idAEliminar = vueloGuardado.getId();
@@ -137,5 +142,59 @@ class FlightControllerTest {
                 flightRepository.existsById(idAEliminar),
                 "El ID eliminado no debe existir más en la base de datos"
         );
+    }
+
+    @Test
+    @DisplayName("TC-12: POST /api/vuelos sin autenticación retorna 401")
+    void TC12_postVuelo_sinToken_retorna401() throws Exception {
+        String payloadJson = objectMapper.writeValueAsString(flightValido);
+
+        mockMvc.perform(post("/api/vuelos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payloadJson))
+                .andExpect(status().isUnauthorized());
+        assertEquals(0, flightRepository.count(), "No debe crearse ningún vuelo sin autenticación");
+    }
+
+    @Test
+    @DisplayName("TC-13: POST /api/vuelos con rol USER (no ADMIN) retorna 403")
+    @WithMockUser(roles = "USER")
+    void TC13_postVuelo_rolUsuario_retorna403() throws Exception {
+        String payloadJson = objectMapper.writeValueAsString(flightValido);
+
+        mockMvc.perform(post("/api/vuelos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payloadJson))
+                .andExpect(status().isForbidden());
+        assertEquals(0, flightRepository.count(), "No debe crearse ningún vuelo con rol insuficiente");
+    }
+
+    @Test
+    @DisplayName("TC-14: PUT /api/vuelos/{id} con rol ADMIN actualiza el vuelo existente")
+    @WithMockUser(roles = "ADMIN")
+    void TC14_putVuelo_rolAdmin_actualizaVuelo() throws Exception {
+        Flight guardado = flightRepository.save(flightValido);
+
+        Flight actualizado = new Flight(
+                null,
+                "Vuelo Bariloche Actualizado",
+                "Descripción actualizada.",
+                "Bariloche, Argentina",
+                "montaña",
+                600.0,
+                "USD",
+                List.of("https://example.com/nueva.jpg")
+        );
+        String payloadJson = objectMapper.writeValueAsString(actualizado);
+
+        mockMvc.perform(put("/api/vuelos/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payloadJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Vuelo Bariloche Actualizado"))
+                .andExpect(jsonPath("$.price").value(600.0));
+
+        Flight enDb = flightRepository.findById(guardado.getId()).orElseThrow();
+        assertEquals("Vuelo Bariloche Actualizado", enDb.getName());
     }
 }

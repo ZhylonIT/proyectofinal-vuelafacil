@@ -3,7 +3,10 @@ package com.vuelafacil.api.services;
 import com.vuelafacil.api.entities.Flight;
 import com.vuelafacil.api.exceptions.BadRequestException;
 import com.vuelafacil.api.exceptions.ResourceNotFoundException;
+import com.vuelafacil.api.repositories.FavoritoRepository;
 import com.vuelafacil.api.repositories.FlightRepository;
+import com.vuelafacil.api.repositories.ResenaRepository;
+import com.vuelafacil.api.repositories.ReservaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +25,15 @@ class FlightServiceTest {
 
     @Mock
     private FlightRepository flightRepository;
+
+    @Mock
+    private FavoritoRepository favoritoRepository;
+
+    @Mock
+    private ReservaRepository reservaRepository;
+
+    @Mock
+    private ResenaRepository resenaRepository;
 
     @InjectMocks
     private FlightService flightService;
@@ -118,6 +130,20 @@ class FlightServiceTest {
                 () -> flightService.eliminarVuelo(idExistente),
                 "No debe lanzar excepción al eliminar un vuelo existente"
         );
+        verify(flightRepository, times(1)).deleteById(idExistente);
+    }
+
+    @Test
+    @DisplayName("TC-091: Eliminar vuelo borra primero sus favoritos, reservas y reseñas asociadas")
+    void TC091_eliminarVuelo_borraDependenciasAntesDeEliminarElVuelo() {
+        Long idExistente = 1L;
+        when(flightRepository.existsById(idExistente)).thenReturn(true);
+
+        flightService.eliminarVuelo(idExistente);
+
+        verify(favoritoRepository, times(1)).deleteByFlightId(idExistente);
+        verify(reservaRepository, times(1)).deleteByFlightId(idExistente);
+        verify(resenaRepository, times(1)).deleteByFlightId(idExistente);
         verify(flightRepository, times(1)).deleteById(idExistente);
     }
 

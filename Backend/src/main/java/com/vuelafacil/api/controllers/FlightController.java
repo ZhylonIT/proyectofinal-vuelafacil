@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,12 +38,20 @@ public class FlightController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Flight> registrarVuelo(@Valid @RequestBody Flight flight) {
         Flight nuevoVuelo = flightService.registrarVuelo(flight);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoVuelo);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Flight> actualizarVuelo(@PathVariable Long id, @Valid @RequestBody Flight flight) {
+        return ResponseEntity.ok(flightService.actualizarVuelo(id, flight));
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarVuelo(@PathVariable Long id) {
         flightService.eliminarVuelo(id);
         return ResponseEntity.noContent().build();
