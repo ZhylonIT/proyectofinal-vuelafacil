@@ -12,6 +12,7 @@ import com.vuelafacil.api.security.CurrentUserProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,6 +35,10 @@ public class ReservaService {
 
         Flight flight = flightRepository.findById(datos.getFlightId())
                 .orElseThrow(() -> new ResourceNotFoundException("El vuelo especificado no existe."));
+
+        if (datos.getFechaIda().isBefore(LocalDate.now())) {
+            throw new BadRequestException("La fecha de ida no puede ser anterior al día de la fecha.");
+        }
 
         if (datos.getFechaVuelta() != null && datos.getFechaVuelta().isBefore(datos.getFechaIda())) {
             throw new BadRequestException("La fecha de vuelta no puede ser anterior a la fecha de ida.");

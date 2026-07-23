@@ -128,6 +128,10 @@ app.jwt.expiration-ms=86400000
 | `favoritos` | Relación usuario ↔ vuelo marcado como favorito (única por par) |
 | `reservas` | Reservas de un usuario sobre un vuelo: fechas, estado, precio/moneda congelados al momento de reservar |
 | `resenas` | Valoraciones (1 a 5 estrellas + comentario) de un usuario sobre un vuelo (una por par usuario/vuelo) |
+| `categorias` | Categorías de destino (nombre único + imagen) mostradas en la Home y el panel de administración |
+| `caracteristicas` | Características de destino (nombre único + ícono), administrables desde el panel |
+| `destino_detalles` | Descripción por destino (uno por nombre de destino) |
+| `destino_caracteristicas` | Relación muchos a muchos entre `destino_detalles` y `caracteristicas` |
 
 ---
 
@@ -208,7 +212,7 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 
 | Método | Endpoint | Descripción | Auth |
 |---|---|---|---|
-| `POST` | `/api/reservas` | Crea una reserva (congela precio/moneda del vuelo) | Sí (autenticado) |
+| `POST` | `/api/reservas` | Crea una reserva (congela precio/moneda del vuelo; rechaza fecha de ida anterior al día actual) | Sí (autenticado) |
 | `GET` | `/api/reservas/mias` | Lista las reservas del usuario autenticado | Sí (autenticado) |
 | `DELETE` | `/api/reservas/{id}` | Cancela una reserva propia | Sí (autenticado) |
 
@@ -219,13 +223,40 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 | `POST` | `/api/vuelos/{id}/resenas` | Publica una reseña (1 por usuario por vuelo) | Sí (autenticado) |
 | `GET` | `/api/vuelos/{id}/resenas` | Lista las reseñas de un vuelo con promedio y cantidad | No |
 
+### Categorías (`/api/categorias`)
+
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/api/categorias` | Lista todas las categorías | No |
+| `GET` | `/api/categorias/{id}` | Obtiene una categoría por ID | No |
+| `POST` | `/api/categorias` | Crea una categoría (valida nombre único) | Sí (rol `ADMIN`) |
+| `PUT` | `/api/categorias/{id}` | Actualiza una categoría existente | Sí (rol `ADMIN`) |
+| `DELETE` | `/api/categorias/{id}` | Elimina una categoría (rechaza si hay vuelos asociados) | Sí (rol `ADMIN`) |
+
+### Características (`/api/caracteristicas`)
+
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/api/caracteristicas` | Lista todas las características | No |
+| `POST` | `/api/caracteristicas` | Crea una característica (valida nombre único) | Sí (rol `ADMIN`) |
+| `PUT` | `/api/caracteristicas/{id}` | Actualiza una característica existente | Sí (rol `ADMIN`) |
+| `DELETE` | `/api/caracteristicas/{id}` | Elimina una característica y la desasocia de todos los destinos | Sí (rol `ADMIN`) |
+
+### Destinos (`/api/destinos`)
+
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/api/destinos` | Lista la información (descripción + características) de todos los destinos | No |
+| `GET` | `/api/destinos/{nombreDestino}` | Obtiene la información de un destino puntual | No |
+| `PUT` | `/api/destinos` | Crea o actualiza (upsert) la descripción y características de un destino | Sí (rol `ADMIN`) |
+
 > La autenticación y la autorización por rol (`ADMIN` / `USER`) están implementadas en el **backend** con Spring Security y JWT — el frontend solo refleja esos permisos en la UI (ver [Autenticación y Roles](#-autenticación-y-roles)).
 
 ---
 
 ## 🗂 Diagrama de Base de Datos
 
-> El diagrama original (https://ibb.co/hR7Pzj9F) solo cubre `FLIGHTS`/`FLIGHT_IMAGES`; el modelo actual agrega `USUARIOS`, `ROLES`, `FAVORITOS`, `RESERVAS` y `RESENAS` como se detalla abajo.
+> El diagrama original (https://ibb.co/hR7Pzj9F) solo cubre `FLIGHTS`/`FLIGHT_IMAGES`; el modelo actual agrega `USUARIOS`, `ROLES`, `FAVORITOS`, `RESERVAS`, `RESENAS`, `CATEGORIAS`, `CARACTERISTICAS` y `DESTINO_DETALLES` como se detalla abajo.
 
 | Tabla | Campo | Tipo | Detalle |
 |---|---|---|---|
@@ -261,6 +292,17 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 | | `rating` | `integer` | 1 a 5 |
 | | `comentario` | `text` | — |
 | | `fecha` | `timestamp` | — |
+| **CATEGORIAS** | `id` | `bigint` | Clave primaria |
+| | `nombre` | `varchar(255)` | Único |
+| | `imagen` | `text` | URL de la imagen de portada |
+| **CARACTERISTICAS** | `id` | `bigint` | Clave primaria |
+| | `nombre` | `varchar(255)` | Único |
+| | `icono` | `varchar(255)` | Emoji representativo |
+| **DESTINO_DETALLES** | `id` | `bigint` | Clave primaria |
+| | `nombre_destino` | `varchar(255)` | Único |
+| | `descripcion` | `text` | — |
+| **DESTINO_CARACTERISTICAS** | `destino_id` | `bigint` | Clave foránea → `DESTINO_DETALLES.id` |
+| | `caracteristica_id` | `bigint` | Clave foránea → `CARACTERISTICAS.id` |
 
 Al eliminar un vuelo (`DELETE /api/vuelos/{id}`), el backend borra en cascada sus favoritos, reservas y reseñas asociadas antes de borrar el vuelo, para no violar las claves foráneas.
 
@@ -274,7 +316,7 @@ cd Backend
 ./mvnw test
 ```
 
-**46 tests** entre unitarios (Mockito) e integración (MockMvc + H2 en memoria), todos aprobados:
+**47 tests** entre unitarios (Mockito) e integración (MockMvc + H2 en memoria), todos aprobados:
 
 | Capa | Clase | Cubre |
 |---|---|---|
@@ -282,7 +324,7 @@ cd Backend
 | Servicio | `UsuarioServiceTest` | Registro, email duplicado, cambio de rol, autoprotección |
 | Servicio | `AuthServiceTest` | Login válido/inválido y generación de token |
 | Servicio | `FavoritoServiceTest` | Alta, duplicado, baja inexistente |
-| Servicio | `ReservaServiceTest` | Alta con precio congelado, fechas inválidas, cancelación ajena |
+| Servicio | `ReservaServiceTest` | Alta con precio congelado, fecha de ida pasada, fecha de vuelta inválida, cancelación ajena |
 | Servicio | `ResenaServiceTest` | Alta, duplicado, cálculo de promedio |
 | Controlador | `FlightControllerTest` | CRUD + 401/403 por rol, incluye `PUT` |
 | Controlador | `AuthControllerTest` | Registro y login end-to-end |
@@ -317,18 +359,6 @@ Este proyecto **no cuenta con deploy público**: la entrega se realiza para ejec
 https://ibb.co/whhFLcZb
 
 Buscador principal con filtros por origen, destino, fechas y pasajeros, filtro por características (Apto Familia, Aventura Extrema, Relajación Total, Wifi) y grilla de destinos destacados.
-
----
-
-## 🧱 Buenas prácticas aplicadas
-
-- **Capas separadas**: `controllers` → `services` → `repositories`, sin lógica de negocio en los controllers.
-- **DTOs** de entrada y salida para autenticación, reservas, favoritos y reseñas — nunca se serializa la entidad `Usuario` completa (el hash de la contraseña no sale de la capa de persistencia).
-- **Validaciones** con Bean Validation (`@NotBlank`, `@Email`, `@Min`/`@Max`, etc.) tanto en las entidades como en los DTOs de request.
-- **Autenticación y autorización reales** en el backend (Spring Security + JWT + BCrypt), no delegadas al cliente.
-- **Manejo centralizado de errores** (`@RestControllerAdvice`) con respuestas uniformes y códigos HTTP semánticos (`400`, `401`, `403`, `404`, `409`).
-- **Tests automatizados** unitarios y de integración para cada capa nueva (ver [Testing](#-testing)).
-- **Frontend desacoplado del `localStorage`**: una capa de servicios (`src/services/`) y un `AuthContext` centralizan el consumo de la API y el manejo de la sesión, reemplazando la lógica simulada que existía antes.
 
 ---
 

@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -54,6 +55,8 @@ class ReservaControllerTest {
 
     private String token;
     private Long flightId;
+    private final String fechaIdaFutura = LocalDate.now().plusDays(10).toString();
+    private final String fechaVueltaFutura = LocalDate.now().plusDays(20).toString();
 
     @BeforeEach
     void setUp() throws Exception {
@@ -84,7 +87,7 @@ class ReservaControllerTest {
     @Test
     @DisplayName("TC-01: Crear reserva con token válido retorna 201 con precio copiado del vuelo")
     void TC01_crear_conToken_retorna201ConPrecioCopiado() throws Exception {
-        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"2026-08-01\",\"fechaVuelta\":\"2026-08-10\"}";
+        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"" + fechaIdaFutura + "\",\"fechaVuelta\":\"" + fechaVueltaFutura + "\"}";
 
         mockMvc.perform(post("/api/reservas")
                         .header("Authorization", "Bearer " + token)
@@ -99,7 +102,7 @@ class ReservaControllerTest {
     @Test
     @DisplayName("TC-02: Crear reserva sin token retorna 401")
     void TC02_crear_sinToken_retorna401() throws Exception {
-        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"2026-08-01\"}";
+        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"" + fechaIdaFutura + "\"}";
 
         mockMvc.perform(post("/api/reservas")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +113,7 @@ class ReservaControllerTest {
     @Test
     @DisplayName("TC-03: Listar mis reservas retorna solo las del usuario autenticado")
     void TC03_listarMisReservas_retornaSoloPropias() throws Exception {
-        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"2026-08-01\"}";
+        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"" + fechaIdaFutura + "\"}";
         mockMvc.perform(post("/api/reservas")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,7 +128,7 @@ class ReservaControllerTest {
     @Test
     @DisplayName("TC-04: Cancelar una reserva propia cambia su estado a CANCELADA")
     void TC04_cancelar_reservaPropia_cambiaEstado() throws Exception {
-        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"2026-08-01\"}";
+        String payload = "{\"flightId\":" + flightId + ",\"fechaIda\":\"" + fechaIdaFutura + "\"}";
         String creada = mockMvc.perform(post("/api/reservas")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

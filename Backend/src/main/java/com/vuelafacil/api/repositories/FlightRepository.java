@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface FlightRepository extends JpaRepository<Flight, Long> {
     boolean existsByName(String nombre);
     Optional<Flight> findByName(String nombre);
+    boolean existsByCategoryIgnoreCase(String category);
 }

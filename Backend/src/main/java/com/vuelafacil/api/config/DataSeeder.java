@@ -1,12 +1,18 @@
 package com.vuelafacil.api.config;
 
+import com.vuelafacil.api.entities.Caracteristica;
+import com.vuelafacil.api.entities.Categoria;
 import com.vuelafacil.api.entities.Rol;
 import com.vuelafacil.api.entities.Usuario;
+import com.vuelafacil.api.repositories.CaracteristicaRepository;
+import com.vuelafacil.api.repositories.CategoriaRepository;
 import com.vuelafacil.api.repositories.RolRepository;
 import com.vuelafacil.api.repositories.UsuarioRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -17,11 +23,16 @@ public class DataSeeder implements CommandLineRunner {
     private final RolRepository rolRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CategoriaRepository categoriaRepository;
+    private final CaracteristicaRepository caracteristicaRepository;
 
-    public DataSeeder(RolRepository rolRepository, UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public DataSeeder(RolRepository rolRepository, UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+                      CategoriaRepository categoriaRepository, CaracteristicaRepository caracteristicaRepository) {
         this.rolRepository = rolRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.categoriaRepository = categoriaRepository;
+        this.caracteristicaRepository = caracteristicaRepository;
     }
 
     @Override
@@ -39,6 +50,25 @@ public class DataSeeder implements CommandLineRunner {
             admin.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD_INICIAL));
             admin.setRol(rolAdmin);
             usuarioRepository.save(admin);
+        }
+
+        if (categoriaRepository.count() == 0) {
+            categoriaRepository.saveAll(List.of(
+                    new Categoria(null, "Playa", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=80"),
+                    new Categoria(null, "Montaña", "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=500&q=80"),
+                    new Categoria(null, "Ciudad", "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=500&q=80"),
+                    new Categoria(null, "Histórico", "https://images.unsplash.com/photo-1599946347371-68eb71b16afc?auto=format&fit=crop&w=500&q=80"),
+                    new Categoria(null, "Naturaleza", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=500&q=80")
+            ));
+        }
+
+        if (caracteristicaRepository.count() == 0) {
+            caracteristicaRepository.saveAll(List.of(
+                    new Caracteristica(null, "Apto Familia", "👨‍👩‍👧‍👦"),
+                    new Caracteristica(null, "Aventura Extrema", "🧗"),
+                    new Caracteristica(null, "Relajación Total", "💆"),
+                    new Caracteristica(null, "Wifi", "📶")
+            ));
         }
     }
 }

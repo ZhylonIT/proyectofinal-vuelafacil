@@ -55,8 +55,8 @@ class ReservaServiceTest {
     void TC01_crear_datosValidos_copiaPrecioYMoneda() {
         ReservaRequestDTO datos = new ReservaRequestDTO();
         datos.setFlightId(10L);
-        datos.setFechaIda(LocalDate.of(2026, 8, 1));
-        datos.setFechaVuelta(LocalDate.of(2026, 8, 10));
+        datos.setFechaIda(LocalDate.now().plusDays(10));
+        datos.setFechaVuelta(LocalDate.now().plusDays(20));
 
         when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
         when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
@@ -75,8 +75,23 @@ class ReservaServiceTest {
     void TC02_crear_fechaVueltaAnteriorAIda_lanzaExcepcion() {
         ReservaRequestDTO datos = new ReservaRequestDTO();
         datos.setFlightId(10L);
-        datos.setFechaIda(LocalDate.of(2026, 8, 10));
-        datos.setFechaVuelta(LocalDate.of(2026, 8, 1));
+        datos.setFechaIda(LocalDate.now().plusDays(20));
+        datos.setFechaVuelta(LocalDate.now().plusDays(10));
+
+        when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
+        when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
+
+        assertThrows(BadRequestException.class, () -> reservaService.crear(datos));
+        verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    @DisplayName("TC-04: Crear reserva con fecha de ida anterior a hoy lanza BadRequestException")
+    void TC04_crear_fechaIdaAnteriorAHoy_lanzaExcepcion() {
+        ReservaRequestDTO datos = new ReservaRequestDTO();
+        datos.setFlightId(10L);
+        datos.setFechaIda(LocalDate.now().minusDays(1));
+        datos.setFechaVuelta(LocalDate.now().plusDays(5));
 
         when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
         when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
