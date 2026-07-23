@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FlightGallery from '../features/flights/components/FlightGallery';
 import AvailabilityCalendar from '../features/flights/components/AvailabilityCalendar';
@@ -6,6 +6,7 @@ import FlightPolicies from '../features/flights/components/FlightPolicies';
 import ShareModal from '../features/flights/components/ShareModal';
 import ReviewSection from '../features/flights/components/ReviewSection';
 import { flightService } from '../services/flightService';
+import { destinoService } from '../services/destinoService';
 import { useAuth } from '../context/AuthContext';
 import '../styles/FlightDetail.css';
 
@@ -46,38 +47,31 @@ function Detail() {
     }
   }, [loading, flight]);
 
-  const destinationData = useMemo(() => {
-    if (!flight || !flight.destination) return { chars: [], description: '' };
+  const [destinationData, setDestinationData] = useState({ chars: [], description: '' });
 
-    const globalCharsRaw = localStorage.getItem('vuelafacil_characteristics');
-    const globalChars = globalCharsRaw ? JSON.parse(globalCharsRaw) : [
-      { id: 'char-1', name: 'Apto Familia', icon: '👨‍👩‍👧‍👦' },
-      { id: 'char-2', name: 'Aventura Externa', icon: '🧗' },
-      { id: 'char-3', name: 'Relajación Total', icon: '💆' },
-      { id: 'char-4', name: 'Wifi Alta Velocidad', icon: '📶' }
-    ];
-
-    const destDetailsRaw = localStorage.getItem('vuelafacil_destination_details');
-    const destDetails = destDetailsRaw ? JSON.parse(destDetailsRaw) : {};
-
-    const destData = destDetails[flight.destination];
-    let matchedChars = [];
-    let destDescription = '';
-
-    if (destData) {
-      destDescription = destData.description || '';
-      if (destData.characteristics) {
-        matchedChars = destData.characteristics
-          .map(charId => globalChars.find(c => c.id === charId))
-          .filter(Boolean);
-      }
+  useEffect(() => {
+    if (!flight || !flight.destination) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDestinationData({ chars: [], description: '' });
+      return;
     }
 
-    return { chars: matchedChars, description: destDescription };
+    destinoService.listar()
+      .then(destinos => {
+        const destData = (Array.isArray(destinos) ? destinos : [])
+          .find(d => d.nombreDestino?.toLowerCase() === flight.destination.toLowerCase());
+        setDestinationData({
+          chars: destData?.caracteristicas || [],
+          description: destData?.descripcion || ''
+        });
+      })
+      .catch(error => {
+        console.warn('No se pudo obtener la información del destino:', error);
+        setDestinationData({ chars: [], description: '' });
+      });
   }, [flight]);
 
   const handleBooking = (departure, returnDate) => {
-    // Redirigir a /reserva con el destino en lugar de un ID específico
     const bookingUrl = `/reserva?destination=${encodeURIComponent(flight.destination)}&departure=${departure}&return=${returnDate}`;
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(bookingUrl)}`);
@@ -159,8 +153,8 @@ function Detail() {
               <div className="characteristics-grid">
                 {destinationData.chars.map(char => (
                   <div key={char.id} className="characteristic-item">
-                    <span className="characteristic-icon">{char.icon}</span>
-                    <span className="characteristic-name">{char.name}</span>
+                    <span className="characteristic-icon">{char.icono}</span>
+                    <span className="characteristic-name">{char.nombre}</span>
                   </div>
                 ))}
               </div>

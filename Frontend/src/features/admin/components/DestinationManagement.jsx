@@ -1,82 +1,110 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { caracteristicaService } from '../../../services/caracteristicaService';
+import { destinoService } from '../../../services/destinoService';
 import '../../../styles/AdminPanel.css';
 
 const TRAVEL_EMOJIS = [
-  '✈️', '🌴', '🏖️', '🏔️', '🏙️', '🏕️', '🚢', '🏨', 
-  '🍽️', '🏊', '💆', '📶', '👨‍👩‍👧‍👦', '🧗', '🚗', '🚌', 
-  '❄️', '☀️', '📸', '🎒', '🧳', '🗺️', '🎟️', '🎭', 
+  '✈️', '🌴', '🏖️', '🏔️', '🏙️', '🏕️', '🚢', '🏨',
+  '🍽️', '🏊', '💆', '📶', '👨‍👩‍👧‍👦', '🧗', '🚗', '🚌',
+  '❄️', '☀️', '📸', '🎒', '🧳', '🗺️', '🎟️', '🎭',
   '🍷', '🐾', '♿', '🔥', '🛏️', '🚲'
 ];
 
-const INITIAL_CHARACTERISTICS = [
-  { id: 'char-1', name: 'Apto Familia', icon: '👨‍👩‍👧‍👦' },
-  { id: 'char-2', name: 'Aventura Extrema', icon: '🧗' },
-  { id: 'char-3', name: 'Relajación Total', icon: '💆' },
-  { id: 'char-4', name: 'Wifi', icon: '📶' }
-];
-
 function DestinationManagement({ extractedDestinations = [], flights = [] }) {
-  const [characteristics, setCharacteristics] = useState(() => {
-    const saved = localStorage.getItem('vuelafacil_characteristics');
-    return saved ? JSON.parse(saved) : INITIAL_CHARACTERISTICS;
-  });
+  const [characteristics, setCharacteristics] = useState([]);
+  const [destinationDetails, setDestinationDetails] = useState({});
 
-  const [destinationDetails, setDestinationDetails] = useState(() => {
-    const saved = localStorage.getItem('vuelafacil_destination_details');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const loadCharacteristics = async () => {
+    try {
+      const data = await caracteristicaService.listar();
+      setCharacteristics(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error cargando características desde la API:', error);
+    }
+  };
+
+  const loadDestinationDetails = async () => {
+    try {
+      const destinos = await destinoService.listar();
+      const map = {};
+      (Array.isArray(destinos) ? destinos : []).forEach(dest => {
+        map[dest.nombreDestino] = {
+          description: dest.descripcion || '',
+          characteristics: (dest.caracteristicas || []).map(c => c.id)
+        };
+      });
+      setDestinationDetails(map);
+    } catch (error) {
+      console.error('Error cargando información de destinos desde la API:', error);
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem('vuelafacil_characteristics', JSON.stringify(characteristics));
-  }, [characteristics]);
-
-  useEffect(() => {
-    localStorage.setItem('vuelafacil_destination_details', JSON.stringify(destinationDetails));
-  }, [destinationDetails]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadCharacteristics();
+    loadDestinationDetails();
+  }, []);
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isDestModalOpen, setIsDestModalOpen] = useState(false);
-  const [editingDestName, setEditingDestName] = useState('');  
-  const [charForm, setCharForm] = useState({ id: '', name: '', icon: '' });
-  const [isEditingChar, setIsEditingChar] = useState(false);    
+  const [editingDestName, setEditingDestName] = useState('');
+  const [charForm, setCharForm] = useState({ id: null, nombre: '', icono: '' });
+  const [isEditingChar, setIsEditingChar] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isSavingChar, setIsSavingChar] = useState(false);
+  const [isSavingDest, setIsSavingDest] = useState(false);
 
   // Formulario de Edición de Destino
-  const [destForm, setDestForm] = useState({ description: '', characteristics: [] });  
-  const handleSaveCharacteristic = (e) => {
-    e.preventDefault();
-    if (!charForm.name.trim() || !charForm.icon.trim()) {
-      alert("Por favor, ingrese un nombre y seleccione un ícono.");
-      return;
-    }
+  const [destForm, setDestForm] = useState({ description: '', characteristics: [] });
 
-    if (isEditingChar) {
-      setCharacteristics(prev => prev.map(c => c.id === charForm.id ? charForm : c));
-    } else {
-      const newChar = { ...charForm, id: `char-${Date.now()}` };
-      setCharacteristics(prev => [...prev, newChar]);
-    }
-    setCharForm({ id: '', name: '', icon: '' });
+  const resetCharForm = () => {
+    setCharForm({ id: null, nombre: '', icono: '' });
     setIsEditingChar(false);
     setShowEmojiPicker(false);
   };
 
+  const handleSaveCharacteristic = async (e) => {
+    e.preventDefault();
+    if (!charForm.nombre.trim() || !charForm.icono.trim()) {
+      alert("Por favor, ingrese un nombre y seleccione un ícono.");
+      return;
+    }
+
+    const payload = { nombre: charForm.nombre.trim(), icono: charForm.icono };
+
+    try {
+      setIsSavingChar(true);
+      if (isEditingChar) {
+        const actualizada = await caracteristicaService.actualizar(charForm.id, payload);
+        setCharacteristics(prev => prev.map(c => c.id === actualizada.id ? actualizada : c));
+      } else {
+        const nueva = await caracteristicaService.crear(payload);
+        setCharacteristics(prev => [...prev, nueva]);
+      }
+      resetCharForm();
+    } catch (error) {
+      alert(error.message || 'No se pudo guardar la característica en el servidor.');
+    } finally {
+      setIsSavingChar(false);
+    }
+  };
+
   const handleEditChar = (char) => {
-    setCharForm(char);
+    setCharForm({ id: char.id, nombre: char.nombre, icono: char.icono });
     setIsEditingChar(true);
     setShowEmojiPicker(false);
   };
 
-  const handleDeleteChar = (charId) => {
-    if (window.confirm("¿Eliminar esta característica? Se removerá de los destinos asociados.")) {
-      setCharacteristics(prev => prev.filter(c => c.id !== charId));      
-      const updatedDestinations = { ...destinationDetails };
-      Object.keys(updatedDestinations).forEach(dest => {
-        if (updatedDestinations[dest].characteristics) {
-          updatedDestinations[dest].characteristics = updatedDestinations[dest].characteristics.filter(id => id !== charId);
-        }
-      });
-      setDestinationDetails(updatedDestinations);
+  const handleDeleteChar = async (charId) => {
+    if (!window.confirm("¿Eliminar esta característica? Se removerá de los destinos asociados.")) return;
+
+    try {
+      await caracteristicaService.eliminar(charId);
+      setCharacteristics(prev => prev.filter(c => c.id !== charId));
+      loadDestinationDetails();
+    } catch (error) {
+      alert(error.message || 'No se pudo eliminar la característica en el servidor.');
     }
   };
 
@@ -102,16 +130,29 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
     });
   };
 
-  const handleSaveDestination = (e) => {
+  const handleSaveDestination = async (e) => {
     e.preventDefault();
-    setDestinationDetails(prev => ({
-      ...prev,
-      [editingDestName]: {
-        description: destForm.description,
-        characteristics: destForm.characteristics
-      }
-    }));
-    setIsDestModalOpen(false);
+
+    try {
+      setIsSavingDest(true);
+      await destinoService.guardar({
+        nombreDestino: editingDestName,
+        descripcion: destForm.description,
+        caracteristicaIds: destForm.characteristics
+      });
+      setDestinationDetails(prev => ({
+        ...prev,
+        [editingDestName]: {
+          description: destForm.description,
+          characteristics: destForm.characteristics
+        }
+      }));
+      setIsDestModalOpen(false);
+    } catch (error) {
+      alert(error.message || 'No se pudo guardar la información del destino en el servidor.');
+    } finally {
+      setIsSavingDest(false);
+    }
   };
 
   return (
@@ -141,7 +182,7 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
                   {flights.filter(f => f.destination === dest).length} Paquetes
                 </span>
               </div>
-              
+
               <div className="destination-card-body">
                 {isMissingInfo ? (
                   <div className="warning-badge">
@@ -165,34 +206,34 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
       </div>
 
 {/* Gestión de Características Globales */}
-      {isCharModalOpen && (
+      {isCharModalOpen && createPortal(
         <div className="glass-modal-overlay">
           <div className="glass-modal-content">
             <div className="form-header">
               <h2 style={{ margin: 0, color: '#ffffff', fontSize: '1.4rem' }}>Administrar Características</h2>
-              <button className="btn-danger" onClick={() => { setIsCharModalOpen(false); setIsEditingChar(false); setCharForm({ id: '', name: '', icon: '' }); setShowEmojiPicker(false); }}>X</button>
+              <button className="btn-danger" onClick={() => { setIsCharModalOpen(false); resetCharForm(); }}>X</button>
             </div>
-            
+
             {/* Formulario Añadir/Editar */}
             <form onSubmit={handleSaveCharacteristic} className="char-form" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '2rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Nombre de Característica</label>
-                <input 
+                <input
                   type="text" className="form-input" required placeholder="Ej: Pileta Climatizada"
-                  value={charForm.name} onChange={e => setCharForm({...charForm, name: e.target.value})}
+                  value={charForm.nombre} onChange={e => setCharForm({...charForm, nombre: e.target.value})}
                 />
               </div>
 
               {/* SELECTOR DE EMOJIS */}
               <div className="form-group" style={{ width: '120px', position: 'relative' }}>
                 <label className="form-label">Ícono</label>
-                <button 
-                  type="button" 
-                  className="form-input" 
+                <button
+                  type="button"
+                  className="form-input"
                   style={{ height: '48px', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 >
-                  {charForm.icon || '➕'}
+                  {charForm.icono || '➕'}
                 </button>
 
                 {showEmojiPicker && (
@@ -207,16 +248,16 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
                       <span
                         key={emoji}
                         onClick={() => {
-                          setCharForm({ ...charForm, icon: emoji });
+                          setCharForm({ ...charForm, icono: emoji });
                           setShowEmojiPicker(false);
                         }}
                         style={{
-                          cursor: 'pointer', fontSize: '1.4rem', padding: '0.3rem', 
+                          cursor: 'pointer', fontSize: '1.4rem', padding: '0.3rem',
                           textAlign: 'center', borderRadius: '4px', transition: 'background 0.2s',
-                          background: charForm.icon === emoji ? 'rgba(2, 136, 209, 0.4)' : 'transparent'
+                          background: charForm.icono === emoji ? 'rgba(2, 136, 209, 0.4)' : 'transparent'
                         }}
-                        onMouseOver={(e) => { if(charForm.icon !== emoji) e.target.style.background = 'rgba(255,255,255,0.1)' }}
-                        onMouseOut={(e) => { if(charForm.icon !== emoji) e.target.style.background = 'transparent' }}
+                        onMouseOver={(e) => { if(charForm.icono !== emoji) e.target.style.background = 'rgba(255,255,255,0.1)' }}
+                        onMouseOut={(e) => { if(charForm.icono !== emoji) e.target.style.background = 'transparent' }}
                       >
                         {emoji}
                       </span>
@@ -225,11 +266,11 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
                 )}
               </div>
 
-              <button type="submit" className="btn-primary" style={{ height: '48px' }}>
-                {isEditingChar ? 'Actualizar' : '+ Añadir'}
+              <button type="submit" className="btn-primary" style={{ height: '48px' }} disabled={isSavingChar}>
+                {isSavingChar ? 'Guardando...' : isEditingChar ? 'Actualizar' : '+ Añadir'}
               </button>
               {isEditingChar && (
-                <button type="button" className="btn-secondary" onClick={() => { setIsEditingChar(false); setCharForm({ id: '', name: '', icon: '' }); setShowEmojiPicker(false); }} style={{ height: '48px' }}>
+                <button type="button" className="btn-secondary" onClick={resetCharForm} style={{ height: '48px' }}>
                   Cancelar
                 </button>
               )}
@@ -244,7 +285,7 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {characteristics.map(char => (
                     <li key={char.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <span style={{ fontSize: '1.1rem', color: '#fff' }}>{char.icon} {char.name}</span>
+                      <span style={{ fontSize: '1.1rem', color: '#fff' }}>{char.icono} {char.nombre}</span>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className="btn-secondary btn-sm" onClick={() => handleEditChar(char)}>Editar</button>
                         <button className="btn-danger btn-sm" onClick={() => handleDeleteChar(char.id)}>Eliminar</button>
@@ -255,11 +296,12 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDICIÓN ESPECÍFICA DEL DESTINO --- */}
-      {isDestModalOpen && (
+      {isDestModalOpen && createPortal(
         <div className="glass-modal-overlay">
           <div className="glass-modal-content" style={{ maxWidth: '600px' }}>
             <div className="form-header" style={{ marginBottom: '1.5rem' }}>
@@ -291,17 +333,17 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
                     {characteristics.map(char => {
                       const isSelected = destForm.characteristics.includes(char.id);
                       return (
-                        <div 
-                          key={char.id} 
+                        <div
+                          key={char.id}
                           onClick={() => handleToggleDestChar(char.id)}
-                          style={{ 
-                            background: isSelected ? 'rgba(2, 136, 209, 0.2)' : 'rgba(255,255,255,0.05)', 
+                          style={{
+                            background: isSelected ? 'rgba(2, 136, 209, 0.2)' : 'rgba(255,255,255,0.05)',
                             border: isSelected ? '1px solid #0288d1' : '1px solid rgba(255,255,255,0.1)',
                             padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s'
                           }}
                         >
                           <input type="checkbox" checked={isSelected} readOnly style={{ cursor: 'pointer' }} />
-                          <span style={{ color: isSelected ? '#fff' : '#b0bec5' }}>{char.icon} {char.name}</span>
+                          <span style={{ color: isSelected ? '#fff' : '#b0bec5' }}>{char.icono} {char.nombre}</span>
                         </div>
                       );
                     })}
@@ -310,12 +352,15 @@ function DestinationManagement({ extractedDestinations = [], flights = [] }) {
               </div>
 
               <div className="form-actions-footer" style={{ marginTop: 0 }}>
-                <button type="button" className="btn-secondary" onClick={() => setIsDestModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary">Guardar Información</button>
+                <button type="button" className="btn-secondary" onClick={() => setIsDestModalOpen(false)} disabled={isSavingDest}>Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={isSavingDest}>
+                  {isSavingDest ? 'Guardando...' : 'Guardar Información'}
+                </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { flightService } from '../../../services/flightService';
 import { favoritoService } from '../../../services/favoritoService';
 import { resenaService } from '../../../services/resenaService';
+import { destinoService } from '../../../services/destinoService';
 import '../../../styles/FlightRecommendations.css';
 
 function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, activeCharacteristics }) {
@@ -15,6 +16,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
   const [prevSearchCriteria, setPrevSearchCriteria] = useState(searchCriteria);
   const [favorites, setFavorites] = useState(new Set());
   const [reviewsMap, setReviewsMap] = useState({});
+  const [destinoDetails, setDestinoDetails] = useState({});
 
   if (activeCategory !== prevCategory || searchCriteria !== prevSearchCriteria) {
     setPrevCategory(activeCategory);
@@ -39,6 +41,21 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     };
 
     fetchFlights();
+  }, []);
+
+  useEffect(() => {
+    destinoService.listar()
+      .then(destinos => {
+        const map = {};
+        (Array.isArray(destinos) ? destinos : []).forEach(dest => {
+          map[dest.nombreDestino] = {
+            descripcion: dest.descripcion || '',
+            caracteristicas: (dest.caracteristicas || []).map(c => c.id)
+          };
+        });
+        setDestinoDetails(map);
+      })
+      .catch(error => console.error('Error cargando la información de destinos:', error));
   }, []);
 
   useEffect(() => {
@@ -70,12 +87,7 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
   }, [isAuthenticated, favorites]);
 
   const processedFlights = useMemo(() => {
-    let details = {};
-    try {
-      details = JSON.parse(localStorage.getItem('vuelafacil_destination_details') || '{}');
-    } catch (error) {
-      console.error('Error parseando detalles de destino en recomendaciones:', error);
-    }
+    const details = destinoDetails;
 
     const baseItems = (searchCriteria && searchCriteria.destination)
       ? realFlights.filter(flight => flight?.destination?.toLowerCase().includes(searchCriteria.destination.trim().toLowerCase()))
@@ -88,12 +100,12 @@ function FlightRecommendations({ activeCategory, searchCriteria, onClearSearch, 
     const afterCharFilter = (activeCharacteristics && activeCharacteristics.length > 0)
       ? afterCategoryFilter.filter(item => {
           const destData = details[item.destination];
-          return destData && activeCharacteristics.every(charId => destData.characteristics?.includes(charId));
+          return destData && activeCharacteristics.every(charId => destData.caracteristicas?.includes(charId));
         })
       : afterCategoryFilter;
 
     return afterCharFilter;
-  }, [realFlights, activeCategory, searchCriteria, activeCharacteristics]);
+  }, [realFlights, activeCategory, searchCriteria, activeCharacteristics, destinoDetails]);
 
   const paginatedItems = useMemo(() => {
     const startIndex = searchCriteria ? (currentPage - 1) * 10 : 0;

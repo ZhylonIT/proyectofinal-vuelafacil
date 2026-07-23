@@ -70,6 +70,13 @@ function Booking() {
       return;
     }
 
+    const today = new Date();
+    const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (!departureDate || departureDate < todayISO) {
+      setBookingError('La fecha de ida no puede ser anterior al día de hoy. Volvé atrás y elegí una fecha válida.');
+      return;
+    }
+
     setIsSubmitting(true);
     setBookingError('');
 

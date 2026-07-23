@@ -5,6 +5,13 @@ import { MOCK_CITIES } from '../utils/mockCities';
 
 const passengerOptions = [1, 2, 3, 4, 5, 6, 7, 8];
 
+const getTodayISO = () => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+};
+
 function FlightSearch({ onSearch }) {
   const [searchParams, setSearchParams] = useState({
     origin: '',
@@ -17,6 +24,8 @@ function FlightSearch({ onSearch }) {
   const [activeField, setActiveField] = useState(null);
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [dateError, setDateError] = useState('');
+  const todayISO = getTodayISO();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,7 +83,17 @@ function FlightSearch({ onSearch }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log('Ejecutando búsqueda con:', searchParams);
+
+    if (searchParams.departureDate && searchParams.departureDate < todayISO) {
+      setDateError('La fecha de ida no puede ser anterior al día de hoy.');
+      return;
+    }
+    if (searchParams.returnDate && searchParams.returnDate < searchParams.departureDate) {
+      setDateError('La fecha de vuelta no puede ser anterior a la fecha de ida.');
+      return;
+    }
+
+    setDateError('');
     if (typeof onSearch === 'function') {
       onSearch(searchParams);
     }
@@ -163,6 +182,7 @@ function FlightSearch({ onSearch }) {
                 name="departureDate"
                 value={searchParams.departureDate}
                 onChange={handleChange}
+                min={todayISO}
                 required
               />
             </div>
@@ -175,6 +195,7 @@ function FlightSearch({ onSearch }) {
                 name="returnDate"
                 value={searchParams.returnDate}
                 onChange={handleChange}
+                min={searchParams.departureDate || todayISO}
               />
             </div>
 
@@ -195,6 +216,12 @@ function FlightSearch({ onSearch }) {
             </div>
 
           </div>
+
+          {dateError && (
+            <p role="alert" style={{ color: '#ffb4ab', textAlign: 'center', margin: '0.75rem 0 0', fontWeight: 'bold' }}>
+              ⚠️ {dateError}
+            </p>
+          )}
 
           <div className="flight-search-button-row">
             <button type="submit" className="flight-search-button">

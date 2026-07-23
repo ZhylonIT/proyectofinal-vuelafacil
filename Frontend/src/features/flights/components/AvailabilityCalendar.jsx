@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import '../../../styles/AvailabilityCalendar.css';
 
+const toLocalISO = (date) => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
 function AvailabilityCalendar({ destination, onBooking }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [prevDestination, setPrevDestination] = useState(destination);
@@ -27,7 +33,9 @@ function AvailabilityCalendar({ destination, onBooking }) {
 
   const handleDayClick = (day, monthOffset) => {
     const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthOffset, day);
-    const iso = selectedDate.toISOString().split('T')[0];
+    const iso = toLocalISO(selectedDate);
+
+    if (iso < toLocalISO(new Date())) return;
 
     if (!selectedDeparture) {
       setSelectedDeparture(iso);
@@ -46,7 +54,7 @@ function AvailabilityCalendar({ destination, onBooking }) {
   };
 
   const isSelected = (day, monthOffset) => {
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthOffset, day).toISOString().split('T')[0];
+    const dateStr = toLocalISO(new Date(currentDate.getFullYear(), currentDate.getMonth() + monthOffset, day));
     return dateStr === selectedDeparture || dateStr === selectedReturn;
   };
 
@@ -71,16 +79,21 @@ function AvailabilityCalendar({ destination, onBooking }) {
       days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
     }
 
+    const todayISO = toLocalISO(new Date());
+
     for (let d = 1; d <= daysInMonth; d++) {
-      const selected = isSelected(d, dateOffset);
-      const dayClass = `calendar-day available ${selected ? 'selected' : ''}`;
+      const isPast = toLocalISO(new Date(year, month, d)) < todayISO;
+      const selected = !isPast && isSelected(d, dateOffset);
+      const dayClass = isPast
+        ? 'calendar-day unavailable'
+        : `calendar-day available ${selected ? 'selected' : ''}`;
 
       days.push(
         <div
           key={d}
           className={dayClass}
-          title={selected ? 'Seleccionado' : 'Disponible'}
-          onClick={() => handleDayClick(d, dateOffset)}
+          title={isPast ? 'No disponible' : selected ? 'Seleccionado' : 'Disponible'}
+          onClick={isPast ? undefined : () => handleDayClick(d, dateOffset)}
         >
           {d}
         </div>
@@ -120,6 +133,7 @@ function AvailabilityCalendar({ destination, onBooking }) {
       <div className="calendar-legend">
         <div className="legend-item"><span className="legend-color available"></span> Disponible</div>
         <div className="legend-item"><span className="legend-color selected"></span> Seleccionado</div>
+        <div className="legend-item"><span className="legend-color unavailable"></span> No disponible</div>
       </div>
 
       {selectedDeparture && (

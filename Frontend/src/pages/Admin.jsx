@@ -4,6 +4,7 @@ import FlightForm from '../features/admin/components/FlightForm';
 import UserManagement from '../features/admin/components/UserManagement';
 import DestinationManagement from '../features/admin/components/DestinationManagement';
 import { flightService } from '../services/flightService';
+import { categoriaService } from '../services/categoriaService';
 import '../styles/AdminPanel.css';
 
 function Admin() {
@@ -13,6 +14,7 @@ function Admin() {
   const [flights, setFlights] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('todos');
+  const [categories, setCategories] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -28,6 +30,9 @@ function Admin() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
+    categoriaService.listar()
+      .then(data => setCategories(Array.isArray(data) ? data : []))
+      .catch(error => console.error('Error cargando categorías desde la API:', error));
   }, []);
 
   const handleDeleteFlight = async (flightId) => {
@@ -129,11 +134,9 @@ function Admin() {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                     >
                       <option value="todos">Todas las categorías</option>
-                      <option value="playa">Playa</option>
-                      <option value="montaña">Montaña</option>
-                      <option value="ciudad">Ciudad</option>
-                      <option value="historico">Histórico</option>
-                      <option value="naturaleza">Naturaleza</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.nombre.toLowerCase()}>{cat.nombre}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

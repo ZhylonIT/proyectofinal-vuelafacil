@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { flightService } from '../../../services/flightService';
+import { categoriaService } from '../../../services/categoriaService';
 import '../../../styles/AdminPanel.css';
 
 function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, onSuccess }) {
@@ -15,6 +16,13 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
   const [images, setImages] = useState(flightToEdit?.images || ['']);
   const [errorBackend, setErrorBackend] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    categoriaService.listar()
+      .then(data => setCategories(Array.isArray(data) ? data : []))
+      .catch(error => console.error('Error cargando categorías desde la API:', error));
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -162,11 +170,9 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
             onChange={handleInputChange}
           >
             <option value="todos">Seleccionar Categoría...</option>
-            <option value="playa">Playa</option>
-            <option value="montaña">Montaña</option>
-            <option value="ciudad">Ciudad</option>
-            <option value="historico">Histórico</option>
-            <option value="naturaleza">Naturaleza</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.nombre.toLowerCase()}>{cat.nombre}</option>
+            ))}
           </select>
         </div>
 

@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { caracteristicaService } from '../../../services/caracteristicaService';
 import '../../../styles/CharacteristicsFilter.css';
 
 function CharacteristicsFilter({ selectedIds, onToggleCharacteristic }) {
-  const [availableChars] = useState(() => {
-    const data = localStorage.getItem('vuelafacil_characteristics');
-    return data ? JSON.parse(data) : [];
-  });
+  const [availableChars, setAvailableChars] = useState([]);
+
+  useEffect(() => {
+    caracteristicaService.listar()
+      .then(data => setAvailableChars(Array.isArray(data) ? data : []))
+      .catch(error => {
+        console.error('Error cargando las características desde la API:', error);
+        setAvailableChars([]);
+      });
+  }, []);
 
   if (availableChars.length === 0) return null;
 
@@ -21,7 +28,7 @@ function CharacteristicsFilter({ selectedIds, onToggleCharacteristic }) {
               onClick={() => onToggleCharacteristic(char.id)}
               className={`filter-chip ${isActive ? 'active' : ''}`}
             >
-              <span>{char.icon}</span> {char.name}
+              <span>{char.icono}</span> {char.nombre}
             </button>
           );
         })}
