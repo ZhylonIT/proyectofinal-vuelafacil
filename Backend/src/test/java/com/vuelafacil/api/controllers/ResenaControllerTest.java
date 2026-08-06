@@ -75,7 +75,7 @@ class ResenaControllerTest {
         token = objectMapper.readValue(response, AuthResponseDTO.class).getToken();
 
         Flight flight = flightRepository.save(new Flight(null, "Vuelo Test", "desc", "Bariloche",
-                "montaña", 100.0, "USD", List.of("img.jpg")));
+                null, 100.0, "USD", 10, List.of("img.jpg"), null));
         flightId = flight.getId();
     }
 

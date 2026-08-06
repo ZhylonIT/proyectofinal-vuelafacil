@@ -125,7 +125,18 @@ function Detail() {
 
       <section className="detail-body">
         <div className="detail-info-card">
-          <span className="detail-badge">{flight.category}</span>
+          <span className="detail-badge">{flight.category || 'general'}</span>
+          {typeof flight.availableSeats === 'number' && (
+            flight.availableSeats > 0 ? (
+              <span className="detail-badge" style={{ marginLeft: '0.5rem', background: 'rgba(76, 175, 80, 0.2)', color: '#81c784' }}>
+                Cupos disponibles: {flight.availableSeats}
+              </span>
+            ) : (
+              <span className="detail-badge" style={{ marginLeft: '0.5rem', background: 'rgba(244, 67, 54, 0.2)', color: '#e57373' }}>
+                Sin cupos disponibles
+              </span>
+            )
+          )}
 
           <p className="detail-description" style={{ marginBottom: '1.5rem' }}>
             <strong>Sobre el paquete:</strong> {flight.description}

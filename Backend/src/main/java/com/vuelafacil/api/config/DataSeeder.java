@@ -9,6 +9,7 @@ import com.vuelafacil.api.repositories.CategoriaRepository;
 import com.vuelafacil.api.repositories.RolRepository;
 import com.vuelafacil.api.repositories.UsuarioRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -19,20 +20,23 @@ public class DataSeeder implements CommandLineRunner {
 
     private static final String ADMIN_EMAIL = "admin@vuelafacil.com";
     private static final String ADMIN_PASSWORD_INICIAL = "Admin123!";
-
+    private static final int CAPACIDAD_POR_DEFECTO = 10;
     private final RolRepository rolRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final CategoriaRepository categoriaRepository;
     private final CaracteristicaRepository caracteristicaRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public DataSeeder(RolRepository rolRepository, UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-                      CategoriaRepository categoriaRepository, CaracteristicaRepository caracteristicaRepository) {
+                      CategoriaRepository categoriaRepository, CaracteristicaRepository caracteristicaRepository,
+                      JdbcTemplate jdbcTemplate) {
         this.rolRepository = rolRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.categoriaRepository = categoriaRepository;
         this.caracteristicaRepository = caracteristicaRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -70,5 +74,24 @@ public class DataSeeder implements CommandLineRunner {
                     new Caracteristica(null, "Wifi", "📶")
             ));
         }
+
+        migrarVuelosLegacy();
+    }
+
+    private void migrarVuelosLegacy() {
+        Integer columnaLegacy = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE TABLE_NAME = 'FLIGHTS' AND COLUMN_NAME = 'CATEGORY'",
+                Integer.class);
+
+        if (columnaLegacy != null && columnaLegacy > 0) {
+            jdbcTemplate.execute("ALTER TABLE FLIGHTS ALTER COLUMN CATEGORY SET NULL");
+            jdbcTemplate.update(
+                    "UPDATE FLIGHTS f SET CATEGORIA_ID = " +
+                    "(SELECT c.ID FROM CATEGORIAS c WHERE LOWER(c.NOMBRE) = LOWER(f.CATEGORY)) " +
+                    "WHERE f.CATEGORIA_ID IS NULL AND f.CATEGORY IS NOT NULL");
+        }
+
+        jdbcTemplate.update("UPDATE FLIGHTS SET CAPACITY = ? WHERE CAPACITY IS NULL", CAPACIDAD_POR_DEFECTO);
     }
 }

@@ -33,8 +33,17 @@ public class ReservaService {
     public Reserva crear(ReservaRequestDTO datos) {
         Usuario usuario = currentUserProvider.obtenerUsuarioActual();
 
-        Flight flight = flightRepository.findById(datos.getFlightId())
+        // Bloqueo pesimista: dos reservas simultáneas sobre el mismo vuelo se
+        // serializan y no pueden superar el cupo.
+        Flight flight = flightRepository.findByIdForUpdate(datos.getFlightId())
                 .orElseThrow(() -> new ResourceNotFoundException("El vuelo especificado no existe."));
+
+        if (flight.getCapacity() != null) {
+            long confirmadas = reservaRepository.countByFlightIdAndEstado(flight.getId(), Reserva.EstadoReserva.CONFIRMADA);
+            if (confirmadas >= flight.getCapacity()) {
+                throw new BadRequestException("El vuelo no tiene cupos disponibles: ya se alcanzó la capacidad máxima de reservas.");
+            }
+        }
 
         if (datos.getFechaIda().isBefore(LocalDate.now())) {
             throw new BadRequestException("La fecha de ida no puede ser anterior al día de la fecha.");

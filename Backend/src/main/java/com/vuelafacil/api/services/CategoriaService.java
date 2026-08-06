@@ -62,7 +62,7 @@ public class CategoriaService {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se puede eliminar: la categoría especificada no existe."));
 
-        if (flightRepository.existsByCategoryIgnoreCase(categoria.getNombre())) {
+        if (flightRepository.existsByCategoriaId(categoria.getId())) {
             throw new BadRequestException("No se puede eliminar la categoría porque hay paquetes turísticos asociados a ella.");
         }
         categoriaRepository.delete(categoria);

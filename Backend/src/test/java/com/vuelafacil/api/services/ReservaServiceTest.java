@@ -47,7 +47,7 @@ class ReservaServiceTest {
     @BeforeEach
     void setUp() {
         usuario = new Usuario(1L, "Ana", "Gomez", "ana@test.com", "hash", new Rol(1L, Rol.NombreRol.USER));
-        flight = new Flight(10L, "Vuelo Test", "desc", "Bariloche", "montaña", 100.0, "USD", List.of("img.jpg"));
+        flight = new Flight(10L, "Vuelo Test", "desc", "Bariloche", null, 100.0, "USD", 10, List.of("img.jpg"), null);
     }
 
     @Test
@@ -59,7 +59,7 @@ class ReservaServiceTest {
         datos.setFechaVuelta(LocalDate.now().plusDays(20));
 
         when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
-        when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
+        when(flightRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(flight));
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Reserva resultado = reservaService.crear(datos);
@@ -79,7 +79,7 @@ class ReservaServiceTest {
         datos.setFechaVuelta(LocalDate.now().plusDays(10));
 
         when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
-        when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
+        when(flightRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(flight));
 
         assertThrows(BadRequestException.class, () -> reservaService.crear(datos));
         verify(reservaRepository, never()).save(any(Reserva.class));
@@ -94,9 +94,27 @@ class ReservaServiceTest {
         datos.setFechaVuelta(LocalDate.now().plusDays(5));
 
         when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
-        when(flightRepository.findById(10L)).thenReturn(Optional.of(flight));
+        when(flightRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(flight));
 
         assertThrows(BadRequestException.class, () -> reservaService.crear(datos));
+        verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    @DisplayName("TC-05: Crear reserva sobre un vuelo sin cupos disponibles lanza BadRequestException")
+    void TC05_crear_vueloSinCupos_lanzaExcepcion() {
+        ReservaRequestDTO datos = new ReservaRequestDTO();
+        datos.setFlightId(10L);
+        datos.setFechaIda(LocalDate.now().plusDays(10));
+        datos.setFechaVuelta(LocalDate.now().plusDays(20));
+
+        when(currentUserProvider.obtenerUsuarioActual()).thenReturn(usuario);
+        when(flightRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(flight));
+        // El vuelo tiene capacity = 10 y ya hay 10 reservas confirmadas
+        when(reservaRepository.countByFlightIdAndEstado(10L, Reserva.EstadoReserva.CONFIRMADA)).thenReturn(10L);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> reservaService.crear(datos));
+        assertTrue(ex.getMessage().contains("cupos"), "El mensaje debe indicar la falta de cupos");
         verify(reservaRepository, never()).save(any(Reserva.class));
     }
 

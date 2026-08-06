@@ -1,5 +1,7 @@
 package com.vuelafacil.api.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -32,9 +34,10 @@ public class Flight {
     @Column(nullable = false)
     private String destination;
 
-    @NotBlank
-    @Column(nullable = false)
-    private String category;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "categoria_id")
+    @JsonIgnore
+    private Categoria categoria;
 
     @NotNull
     @Positive
@@ -45,10 +48,25 @@ public class Flight {
     @Column(nullable = false)
     private String currency;
 
+    @Positive
+    private Integer capacity;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "flight_images", joinColumns = @JoinColumn(name = "flight_id"))
-    // SOLUCIÓN: Definimos la columna como TEXT para que soporte los strings gigantescos de Base64 sin explotar
     @Column(name = "image_url", columnDefinition = "TEXT", nullable = false)
     @NotEmpty
     private List<String> images;
+
+    @Transient
+    private Integer availableSeats;
+
+    @JsonProperty("category")
+    public String getCategory() {
+        return categoria != null ? categoria.getNombre() : null;
+    }
+
+    @JsonProperty("available")
+    public boolean isAvailable() {
+        return availableSeats == null || availableSeats > 0;
+    }
 }

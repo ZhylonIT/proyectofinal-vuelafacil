@@ -1,5 +1,6 @@
 package com.vuelafacil.api.controllers;
 
+import com.vuelafacil.api.dtos.FlightRequestDTO;
 import com.vuelafacil.api.entities.Flight;
 import com.vuelafacil.api.services.FlightService;
 import jakarta.validation.Valid;
@@ -39,15 +40,15 @@ public class FlightController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Flight> registrarVuelo(@Valid @RequestBody Flight flight) {
-        Flight nuevoVuelo = flightService.registrarVuelo(flight);
+    public ResponseEntity<Flight> registrarVuelo(@Valid @RequestBody FlightRequestDTO datos) {
+        Flight nuevoVuelo = flightService.registrarVuelo(datos);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoVuelo);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Flight> actualizarVuelo(@PathVariable Long id, @Valid @RequestBody Flight flight) {
-        return ResponseEntity.ok(flightService.actualizarVuelo(id, flight));
+    public ResponseEntity<Flight> actualizarVuelo(@PathVariable Long id, @Valid @RequestBody FlightRequestDTO datos) {
+        return ResponseEntity.ok(flightService.actualizarVuelo(id, datos));
     }
 
     @DeleteMapping("/{id}")

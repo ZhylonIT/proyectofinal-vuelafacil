@@ -1,8 +1,11 @@
 package com.vuelafacil.api.services;
 
+import com.vuelafacil.api.dtos.FlightRequestDTO;
+import com.vuelafacil.api.entities.Categoria;
 import com.vuelafacil.api.entities.Flight;
 import com.vuelafacil.api.exceptions.BadRequestException;
 import com.vuelafacil.api.exceptions.ResourceNotFoundException;
+import com.vuelafacil.api.repositories.CategoriaRepository;
 import com.vuelafacil.api.repositories.FavoritoRepository;
 import com.vuelafacil.api.repositories.FlightRepository;
 import com.vuelafacil.api.repositories.ResenaRepository;
@@ -15,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
+import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -25,6 +29,9 @@ class FlightServiceTest {
 
     @Mock
     private FlightRepository flightRepository;
+
+    @Mock
+    private CategoriaRepository categoriaRepository;
 
     @Mock
     private FavoritoRepository favoritoRepository;
@@ -38,18 +45,20 @@ class FlightServiceTest {
     @InjectMocks
     private FlightService flightService;
 
-    private Flight flightValido;
+    private FlightRequestDTO datosValidos;
+    private Categoria categoriaMontana;
 
     @BeforeEach
     void setUp() {
-        flightValido = new Flight(
-                null,
+        categoriaMontana = new Categoria(1L, "Montaña", "https://example.com/montania.jpg");
+        datosValidos = new FlightRequestDTO(
                 "Vuelo Promocional Bariloche Invierno",
                 "Paquete completo con hotel y traslados incluidos.",
                 "Bariloche, Argentina",
                 "montaña",
                 450.0,
                 "USD",
+                12,
                 List.of("https://example.com/bariloche.jpg")
         );
     }
@@ -57,26 +66,24 @@ class FlightServiceTest {
     @Test
     @DisplayName("TC-01: Registrar vuelo con datos válidos guarda correctamente en la base de datos")
     void TC01_registrarVuelo_datosValidos_guardaYRetornaVuelo() {
-        Flight flightConId = new Flight(
-                1L,
-                flightValido.getName(),
-                flightValido.getDescription(),
-                flightValido.getDestination(),
-                flightValido.getCategory(),
-                flightValido.getPrice(),
-                flightValido.getCurrency(),
-                flightValido.getImages()
-        );
-        when(flightRepository.existsByName(flightValido.getName().trim())).thenReturn(false);
-        when(flightRepository.save(any(Flight.class))).thenReturn(flightConId);
+        when(flightRepository.existsByName(datosValidos.getName().trim())).thenReturn(false);
+        when(categoriaRepository.findByNombreIgnoreCase("montaña")).thenReturn(Optional.of(categoriaMontana));
+        when(flightRepository.save(any(Flight.class))).thenAnswer(inv -> {
+            Flight guardado = inv.getArgument(0);
+            guardado.setId(1L);
+            return guardado;
+        });
 
         // Act
-        Flight resultado = flightService.registrarVuelo(flightValido);
+        Flight resultado = flightService.registrarVuelo(datosValidos);
 
         // Assert
         assertNotNull(resultado, "El vuelo retornado no debe ser nulo");
         assertEquals(1L, resultado.getId(), "Debe tener un ID asignado por la base de datos");
         assertEquals("Vuelo Promocional Bariloche Invierno", resultado.getName());
+        assertEquals("Montaña", resultado.getCategory(), "La categoría debe resolverse contra la entidad Categoria");
+        assertEquals(12, resultado.getCapacity());
+        assertEquals(12, resultado.getAvailableSeats(), "Un vuelo nuevo tiene todos sus cupos libres");
 
         // Verifica que save() fue invocado exactamente una vez
         verify(flightRepository, times(1)).save(any(Flight.class));
@@ -85,11 +92,11 @@ class FlightServiceTest {
     @Test
     @DisplayName("TC-02: Registrar vuelo con nombre duplicado lanza BadRequestException y no guarda")
     void TC02_registrarVuelo_nombreDuplicado_lanzaExcepcion() {
-        when(flightRepository.existsByName(flightValido.getName().trim())).thenReturn(true);
+        when(flightRepository.existsByName(datosValidos.getName().trim())).thenReturn(true);
 
         BadRequestException ex = assertThrows(
                 BadRequestException.class,
-                () -> flightService.registrarVuelo(flightValido),
+                () -> flightService.registrarVuelo(datosValidos),
                 "Debe lanzar BadRequestException cuando el nombre ya existe"
         );
 
@@ -104,11 +111,11 @@ class FlightServiceTest {
     @Test
     @DisplayName("TC-03: Registrar vuelo con nombre de solo espacios en blanco lanza BadRequestException")
     void TC03_registrarVuelo_nombreSoloEspacios_lanzaExcepcion() {
-        flightValido.setName("     ");
+        datosValidos.setName("     ");
 
         BadRequestException ex = assertThrows(
                 BadRequestException.class,
-                () -> flightService.registrarVuelo(flightValido),
+                () -> flightService.registrarVuelo(datosValidos),
                 "Debe lanzar BadRequestException cuando el nombre es solo espacios"
         );
         assertEquals(
@@ -117,6 +124,26 @@ class FlightServiceTest {
         );
 
         verify(flightRepository, never()).existsByName(any());
+        verify(flightRepository, never()).save(any(Flight.class));
+    }
+
+    @Test
+    @DisplayName("TC-031: Registrar vuelo con una categoría inexistente lanza BadRequestException y no guarda")
+    void TC031_registrarVuelo_categoriaInexistente_lanzaExcepcion() {
+        datosValidos.setCategory("categoria-fantasma");
+        when(flightRepository.existsByName(datosValidos.getName().trim())).thenReturn(false);
+        when(categoriaRepository.findByNombreIgnoreCase("categoria-fantasma")).thenReturn(Optional.empty());
+
+        BadRequestException ex = assertThrows(
+                BadRequestException.class,
+                () -> flightService.registrarVuelo(datosValidos),
+                "Debe lanzar BadRequestException cuando la categoría no existe"
+        );
+
+        assertTrue(
+                ex.getMessage().contains("La categoría especificada no existe"),
+                "El mensaje debe indicar que la categoría no existe"
+        );
         verify(flightRepository, never()).save(any(Flight.class));
     }
 

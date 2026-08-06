@@ -138,18 +138,29 @@ function Booking() {
           <>
             <h2 className="booking-subtitle">Seleccioná un paquete:</h2>
             <div className="package-list">
-              {packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className={`package-option ${selectedPackage?.id === pkg.id ? 'selected' : ''}`}
-                  onClick={() => handleSelectPackage(pkg)}
-                >
-                  <h3>{pkg.destination}</h3>
-                  <p>{pkg.description}</p>
-                  <span className="package-price">{pkg.currency} ${pkg.price}</span>
-                  <button className="select-package-btn">Seleccionar</button>
-                </div>
-              ))}
+              {packages.map((pkg) => {
+                const sinCupos = pkg.available === false;
+                return (
+                  <div
+                    key={pkg.id}
+                    className={`package-option ${selectedPackage?.id === pkg.id ? 'selected' : ''}`}
+                    style={sinCupos ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                    onClick={() => !sinCupos && handleSelectPackage(pkg)}
+                  >
+                    <h3>{pkg.destination}</h3>
+                    <p>{pkg.description}</p>
+                    <span className="package-price">{pkg.currency} ${pkg.price}</span>
+                    {typeof pkg.availableSeats === 'number' && !sinCupos && (
+                      <p style={{ fontSize: '0.85rem', color: '#81c784', margin: '0.25rem 0' }}>
+                        Cupos disponibles: {pkg.availableSeats}
+                      </p>
+                    )}
+                    <button className="select-package-btn" disabled={sinCupos}>
+                      {sinCupos ? 'Sin cupos' : 'Seleccionar'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : !bookingConfirmed ? (

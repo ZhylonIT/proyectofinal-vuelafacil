@@ -1,7 +1,10 @@
 package com.vuelafacil.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vuelafacil.api.dtos.FlightRequestDTO;
+import com.vuelafacil.api.entities.Categoria;
 import com.vuelafacil.api.entities.Flight;
+import com.vuelafacil.api.repositories.CategoriaRepository;
 import com.vuelafacil.api.repositories.FlightRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,23 +41,45 @@ class FlightControllerTest {
     private FlightRepository flightRepository;
 
     @Autowired
+    private CategoriaRepository categoriaRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
-    private Flight flightValido;
+    private FlightRequestDTO flightValido;
+    private Categoria categoriaMontana;
 
     @BeforeEach
     void setUp() {
         flightRepository.deleteAll();
-        flightValido = new Flight(
-                null,
+        categoriaMontana = categoriaRepository.findByNombreIgnoreCase("Montaña")
+                .orElseGet(() -> categoriaRepository.save(
+                        new Categoria(null, "Montaña", "https://example.com/montania.jpg")));
+        flightValido = new FlightRequestDTO(
                 "Vuelo Promocional Bariloche Invierno",
                 "Paquete completo con hotel y traslados incluidos en la cordillera.",
                 "Bariloche, Argentina",
                 "montaña",
                 450.0,
                 "USD",
+                12,
                 List.of("https://example.com/bariloche.jpg")
         );
+    }
+
+    private Flight guardarFlightValidoEnDb() {
+        return flightRepository.save(new Flight(
+                null,
+                flightValido.getName(),
+                flightValido.getDescription(),
+                flightValido.getDestination(),
+                categoriaMontana,
+                flightValido.getPrice(),
+                flightValido.getCurrency(),
+                flightValido.getCapacity(),
+                flightValido.getImages(),
+                null
+        ));
     }
 
     @Test
@@ -70,28 +95,33 @@ class FlightControllerTest {
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Vuelo Promocional Bariloche Invierno"))
                 .andExpect(jsonPath("$.destination").value("Bariloche, Argentina"))
+                .andExpect(jsonPath("$.category").value("Montaña"))
                 .andExpect(jsonPath("$.price").value(450.0))
+                .andExpect(jsonPath("$.capacity").value(12))
+                .andExpect(jsonPath("$.available").value(true))
                 .andExpect(jsonPath("$.images", hasSize(1)));
 
         List<Flight> vuelos = flightRepository.findAll();
         assertEquals(1, vuelos.size(), "Debe existir exactamente un vuelo en la base de datos");
         assertEquals("Vuelo Promocional Bariloche Invierno", vuelos.get(0).getName());
+        assertEquals(categoriaMontana.getId(), vuelos.get(0).getCategoria().getId(),
+                "El vuelo debe quedar vinculado por FK a la categoría");
     }
 
     @Test
     @DisplayName("TC-05: POST /api/vuelos con nombre duplicado retorna error y no crea duplicado en DB")
     @WithMockUser(roles = "ADMIN")
     void TC05_postVuelo_nombreDuplicado_retornaErrorYNoDuplica() throws Exception {
-        flightRepository.save(flightValido);
+        guardarFlightValidoEnDb();
 
-        Flight vuelo2 = new Flight(
-                null,
+        FlightRequestDTO vuelo2 = new FlightRequestDTO(
                 "Vuelo Promocional Bariloche Invierno", // mismo nombre
                 "Otra descripción distinta.",
                 "Bariloche, Argentina",
                 "montaña",
                 500.0,
                 "USD",
+                8,
                 List.of("https://example.com/otra.jpg")
         );
         String payloadJson = objectMapper.writeValueAsString(vuelo2);
@@ -107,14 +137,14 @@ class FlightControllerTest {
     @DisplayName("TC-06: POST /api/vuelos sin campo 'name' retorna 400 Bad Request")
     @WithMockUser(roles = "ADMIN")
     void TC06_postVuelo_sinCampoName_retorna400() throws Exception {
-        Flight vueloSinNombre = new Flight(
-                null,
+        FlightRequestDTO vueloSinNombre = new FlightRequestDTO(
                 null, // <- campo requerido ausente
                 "Descripción válida del vuelo.",
                 "Mendoza, Argentina",
                 "montaña",
                 300.0,
                 "USD",
+                10,
                 List.of("https://example.com/mendoza.jpg")
         );
         String payloadJson = objectMapper.writeValueAsString(vueloSinNombre);
@@ -127,10 +157,24 @@ class FlightControllerTest {
     }
 
     @Test
+    @DisplayName("TC-07: POST /api/vuelos con categoría inexistente retorna 400 y no persiste")
+    @WithMockUser(roles = "ADMIN")
+    void TC07_postVuelo_categoriaInexistente_retorna400() throws Exception {
+        flightValido.setCategory("categoria-fantasma");
+        String payloadJson = objectMapper.writeValueAsString(flightValido);
+
+        mockMvc.perform(post("/api/vuelos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payloadJson))
+                .andExpect(status().isBadRequest());
+        assertEquals(0, flightRepository.count(), "No debe persistirse un vuelo con categoría inexistente");
+    }
+
+    @Test
     @DisplayName("TC-11: DELETE /api/vuelos/{id} con ID existente retorna 204 y elimina de DB e imágenes")
     @WithMockUser(roles = "ADMIN")
     void TC11_deleteVuelo_idExistente_retorna204YEliminaDeDB() throws Exception {
-        Flight vueloGuardado = flightRepository.save(flightValido);
+        Flight vueloGuardado = guardarFlightValidoEnDb();
         Long idAEliminar = vueloGuardado.getId();
         assertEquals(1, flightRepository.count(), "Precondición: debe existir 1 vuelo antes del delete");
 
@@ -173,16 +217,16 @@ class FlightControllerTest {
     @DisplayName("TC-14: PUT /api/vuelos/{id} con rol ADMIN actualiza el vuelo existente")
     @WithMockUser(roles = "ADMIN")
     void TC14_putVuelo_rolAdmin_actualizaVuelo() throws Exception {
-        Flight guardado = flightRepository.save(flightValido);
+        Flight guardado = guardarFlightValidoEnDb();
 
-        Flight actualizado = new Flight(
-                null,
+        FlightRequestDTO actualizado = new FlightRequestDTO(
                 "Vuelo Bariloche Actualizado",
                 "Descripción actualizada.",
                 "Bariloche, Argentina",
                 "montaña",
                 600.0,
                 "USD",
+                20,
                 List.of("https://example.com/nueva.jpg")
         );
         String payloadJson = objectMapper.writeValueAsString(actualizado);
@@ -192,7 +236,8 @@ class FlightControllerTest {
                         .content(payloadJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Vuelo Bariloche Actualizado"))
-                .andExpect(jsonPath("$.price").value(600.0));
+                .andExpect(jsonPath("$.price").value(600.0))
+                .andExpect(jsonPath("$.capacity").value(20));
 
         Flight enDb = flightRepository.findById(guardado.getId()).orElseThrow();
         assertEquals("Vuelo Bariloche Actualizado", enDb.getName());

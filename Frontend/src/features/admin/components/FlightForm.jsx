@@ -8,9 +8,10 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
     name: flightToEdit?.name || '',
     description: flightToEdit?.description || '',
     destination: flightToEdit?.destination || '',
-    category: flightToEdit?.category || 'todos',
+    category: (flightToEdit?.category || '').toLowerCase(),
     price: flightToEdit?.price || '',
-    currency: flightToEdit?.currency || 'USD'
+    currency: flightToEdit?.currency || 'USD',
+    capacity: flightToEdit?.capacity || ''
   });
 
   const [images, setImages] = useState(flightToEdit?.images || ['']);
@@ -83,6 +84,7 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
       category: formData.category,
       price: parseFloat(formData.price),
       currency: formData.currency,
+      capacity: parseInt(formData.capacity, 10),
       images: filteredImages
     };
 
@@ -166,10 +168,11 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
           <select
             name="category"
             className="form-select"
+            required
             value={formData.category}
             onChange={handleInputChange}
           >
-            <option value="todos">Seleccionar Categoría...</option>
+            <option value="">Seleccionar Categoría...</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.nombre.toLowerCase()}>{cat.nombre}</option>
             ))}
@@ -187,6 +190,19 @@ function FlightForm({ existingDestinations = [], flightToEdit = null, onCancel, 
               min="1"
               placeholder="450"
               value={formData.price}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Cupo (reservas máx.)</label>
+            <input
+              type="number"
+              name="capacity"
+              className="form-input"
+              required
+              min="1"
+              placeholder="10"
+              value={formData.capacity}
               onChange={handleInputChange}
             />
           </div>

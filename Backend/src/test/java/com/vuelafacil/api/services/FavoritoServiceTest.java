@@ -46,7 +46,7 @@ class FavoritoServiceTest {
     @BeforeEach
     void setUp() {
         usuario = new Usuario(1L, "Ana", "Gomez", "ana@test.com", "hash", new Rol(1L, Rol.NombreRol.USER));
-        flight = new Flight(10L, "Vuelo Test", "desc", "Bariloche", "montaña", 100.0, "USD", List.of("img.jpg"));
+        flight = new Flight(10L, "Vuelo Test", "desc", "Bariloche", null, 100.0, "USD", 10, List.of("img.jpg"), null);
     }
 
     @Test
