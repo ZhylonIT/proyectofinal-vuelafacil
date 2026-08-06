@@ -121,7 +121,7 @@ app.jwt.expiration-ms=86400000
 
 | Tabla | Descripción |
 |---|---|
-| `flights` | Paquetes/vuelos: nombre (único), descripción, destino, categoría, precio, moneda |
+| `flights` | Paquetes/vuelos: nombre (único), descripción, destino, categoría (FK a `categorias`), precio, moneda, cupo máximo (`capacity`) |
 | `flight_images` | Imágenes asociadas a cada vuelo (columna `TEXT` para soportar imágenes en Base64) |
 | `usuarios` | Cuentas de usuario: nombre, apellido, email (único), contraseña encriptada (BCrypt), rol |
 | `roles` | Catálogo de roles (`ADMIN`, `USER`) |
@@ -189,8 +189,8 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 | `GET` | `/api/vuelos` | Lista todos los vuelos/paquetes | No |
 | `GET` | `/api/vuelos/{id}` | Obtiene el detalle de un vuelo por ID | No |
 | `GET` | `/api/vuelos/recomendaciones` | Devuelve hasta 10 vuelos aleatorios (para la Home) | No |
-| `POST` | `/api/vuelos` | Crea un nuevo vuelo (valida nombre único) | Sí (rol `ADMIN`) |
-| `PUT` | `/api/vuelos/{id}` | Actualiza un vuelo existente | Sí (rol `ADMIN`) |
+| `POST` | `/api/vuelos` | Crea un nuevo vuelo (valida nombre único y categoría existente) | Sí (rol `ADMIN`) |
+| `PUT` | `/api/vuelos/{id}` | Actualiza un vuelo existente (rechaza bajar la capacidad por debajo de las reservas confirmadas) | Sí (rol `ADMIN`) |
 | `DELETE` | `/api/vuelos/{id}` | Elimina un vuelo y sus favoritos/reservas/reseñas asociadas | Sí (rol `ADMIN`) |
 
 ### Usuarios (`/api/usuarios`)
@@ -212,7 +212,7 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 
 | Método | Endpoint | Descripción | Auth |
 |---|---|---|---|
-| `POST` | `/api/reservas` | Crea una reserva (congela precio/moneda del vuelo; rechaza fecha de ida anterior al día actual) | Sí (autenticado) |
+| `POST` | `/api/reservas` | Crea una reserva (congela precio/moneda del vuelo; rechaza fecha de ida anterior al día actual y vuelos sin cupos disponibles) | Sí (autenticado) |
 | `GET` | `/api/reservas/mias` | Lista las reservas del usuario autenticado | Sí (autenticado) |
 | `DELETE` | `/api/reservas/{id}` | Cancela una reserva propia | Sí (autenticado) |
 
@@ -252,6 +252,8 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 
 > La autenticación y la autorización por rol (`ADMIN` / `USER`) están implementadas en el **backend** con Spring Security y JWT — el frontend solo refleja esos permisos en la UI (ver [Autenticación y Roles](#-autenticación-y-roles)).
 
+> **Control de cupos:** cada vuelo tiene un `capacity` (cupo máximo) definido por el admin. Las respuestas de `GET /api/vuelos` y `GET /api/vuelos/{id}` incluyen `availableSeats` (cupos restantes, calculado a partir de las reservas `CONFIRMADA`) y `available` (booleano). `POST /api/reservas` bloquea el vuelo (lock pesimista) al reservar para que dos requests simultáneos no superen el cupo, y devuelve 400 si ya no quedan lugares.
+
 ---
 
 ## 🗂 Diagrama de Base de Datos
@@ -264,9 +266,10 @@ Todas las respuestas de error siguen un formato uniforme (`timestamp`, `status`,
 | | `name` | `varchar(255)` | Único |
 | | `description` | `varchar` | — |
 | | `destination` | `varchar(255)` | — |
-| | `category` | `varchar(255)` | — |
+| | `categoria_id` | `bigint` | Clave foránea → `CATEGORIAS.id` |
 | | `price` | `double precision` | — |
 | | `currency` | `varchar(255)` | — |
+| | `capacity` | `integer` | Cupo máximo de reservas confirmadas |
 | **FLIGHT_IMAGES** | `flight_id` | `bigint` | Clave foránea → `FLIGHTS.id` |
 | | `image_url` | `varchar(255)` | URL o Base64 de la imagen |
 | **ROLES** | `id` | `bigint` | Clave primaria |
@@ -316,17 +319,17 @@ cd Backend
 ./mvnw test
 ```
 
-**47 tests** entre unitarios (Mockito) e integración (MockMvc + H2 en memoria), todos aprobados:
+**50 tests** entre unitarios (Mockito) e integración (MockMvc + H2 en memoria), todos aprobados:
 
 | Capa | Clase | Cubre |
 |---|---|---|
-| Servicio | `FlightServiceTest` | CRUD de vuelos + borrado en cascada de dependencias |
+| Servicio | `FlightServiceTest` | CRUD de vuelos, resolución/rechazo de categoría inexistente, cupos disponibles al registrar, borrado en cascada de dependencias |
 | Servicio | `UsuarioServiceTest` | Registro, email duplicado, cambio de rol, autoprotección |
 | Servicio | `AuthServiceTest` | Login válido/inválido y generación de token |
 | Servicio | `FavoritoServiceTest` | Alta, duplicado, baja inexistente |
-| Servicio | `ReservaServiceTest` | Alta con precio congelado, fecha de ida pasada, fecha de vuelta inválida, cancelación ajena |
+| Servicio | `ReservaServiceTest` | Alta con precio congelado, fecha de ida pasada, fecha de vuelta inválida, vuelo sin cupos disponibles, cancelación ajena |
 | Servicio | `ResenaServiceTest` | Alta, duplicado, cálculo de promedio |
-| Controlador | `FlightControllerTest` | CRUD + 401/403 por rol, incluye `PUT` |
+| Controlador | `FlightControllerTest` | CRUD + 401/403 por rol, categoría inexistente, incluye `PUT` |
 | Controlador | `AuthControllerTest` | Registro y login end-to-end |
 | Controlador | `FavoritoControllerTest` | Flujo completo con JWT real |
 | Controlador | `ReservaControllerTest` | Flujo completo con JWT real |
